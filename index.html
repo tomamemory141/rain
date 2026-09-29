@@ -44,6 +44,18 @@ h1 { font-size: 16px; margin: 0 0 4px; font-weight: 700 }
 .h .p { font-size: 11px; color: var(--pop); font-weight: 700; min-height: 13px }
 .h .v { font-size: 17px }
 
+.days { display: grid; font-variant-numeric: tabular-nums }
+.d { display: grid; grid-template-columns: 3em 28px 3em 2.4em 1fr 2.4em; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line) }
+.d:first-child { border-top: 0 }
+.d .w { font-size: 15px; font-weight: 600 }
+.d .ic svg { display: block }
+.d .p { font-size: 11px; color: var(--pop); font-weight: 700 }
+.d .lo { font-size: 15px; color: var(--sub); text-align: right }
+.d .hi { font-size: 15px }
+.track { position: relative; height: 5px; border-radius: 3px; background: rgba(0,0,0,.25) }
+.seg { position: absolute; top: 0; bottom: 0; border-radius: 3px }
+.dot { position: absolute; top: 50%; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 1.5px rgba(0,0,0,.35) }
+
 .foot { font-size: 10px; color: var(--sub); text-align: right }
 .foot a { color: inherit }
 </style>
@@ -72,6 +84,11 @@ h1 { font-size: 16px; margin: 0 0 4px; font-weight: 700 }
   <div class="card">
     <div class="cap"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" style="vertical-align:-1px;margin-right:4px"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.5V8l2.5 1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>1時間ごとの天気予報</div>
     <div class="hours" id="hours"></div>
+  </div>
+
+  <div class="card">
+    <div class="cap"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" style="vertical-align:-1px;margin-right:4px"><rect x="1.75" y="3" width="12.5" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M1.75 6.5h12.5M5 1.5v3M11 1.5v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>7日間の天気予報</div>
+    <div class="days" id="days"></div>
   </div>
 
   <div class="foot"><span id="upd"></span> 出典:<a href="https://www.jma.go.jp/bosai/nowc/" target="_blank" rel="noopener">気象庁ナウキャスト</a>を加工 / <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a></div>
@@ -190,7 +207,7 @@ const RAINY = new Set([51,53,55,56,57,61,63,65,66,67,71,73,75,77,80,81,82,85,86,
 
 async function loadWeather(rainNow) {
   const q = "current=temperature_2m,weather_code,is_day&hourly=temperature_2m,precipitation_probability,weather_code,is_day"
-          + "&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=Asia%2FTokyo&forecast_days=2&forecast_hours=12";
+          + "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset&timezone=Asia%2FTokyo&forecast_days=7&forecast_hours=12";
   const w = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&${q}`, { cache: "no-store" }).then(r => r.json());
   const c = w.current;
 
@@ -218,6 +235,21 @@ async function loadWeather(rainNow) {
     });
   document.getElementById("hours").innerHTML = items.map(x =>
     `<div class="h"><div class="t">${x.t}</div><div class="ic">${x.ic}</div><div class="p">${x.p}</div><div class="v"${x.small ? ' style="font-size:13px"' : ""}>${x.v}</div></div>`).join("");
+
+  // 7日間:曜日・天気・降水確率・最低・気温の幅の棒・最高
+  const D = w.daily;
+  const lo = Math.min(...D.temperature_2m_min), hi = Math.max(...D.temperature_2m_max);
+  const pos = t => (hi === lo ? 50 : (t - lo) / (hi - lo) * 100);
+  const col = t => t < 10 ? "#5ac8fa" : t < 17 ? "#6fd3b0" : t < 23 ? "#b5dc52" : t < 28 ? "#ffd23f" : "#ff9f0a";
+  document.getElementById("days").innerHTML = D.time.map((t, i) => {
+    const mn = D.temperature_2m_min[i], mx = D.temperature_2m_max[i];
+    const wd = i === 0 ? "今日" : "日月火水木金土"[new Date(t + "T00:00:00Z").getUTCDay()];   // 日付だけで曜日を出す(見る人の時差に左右されない)
+    const dot = i === 0 ? `<i class="dot" style="left:${pos(c.temperature_2m)}%"></i>` : "";
+    return `<div class="d"><div class="w">${wd}</div><div class="ic">${wx(D.weather_code[i], 1).ic}</div>`
+         + `<div class="p">${pop(D.precipitation_probability_max?.[i])}</div><div class="lo">${Math.round(mn)}°</div>`
+         + `<div class="track"><i class="seg" style="left:${pos(mn)}%;width:${pos(mx) - pos(mn)}%;background:linear-gradient(90deg,${col(mn)},${col(mx)})"></i>${dot}</div>`
+         + `<div class="hi">${Math.round(mx)}°</div></div>`;
+  }).join("");
 }
 
 async function load() {
