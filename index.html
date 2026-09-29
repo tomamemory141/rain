@@ -26,11 +26,12 @@ body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var
 .card { background: var(--card); border-radius: 16px; padding: 12px 16px 10px; backdrop-filter: blur(12px); min-width: 0 }
 h1 { font-size: 16px; margin: 0 0 4px; font-weight: 700 }
 .msg { font-size: 13px; margin: 0 0 12px }
-.plot { position: relative; height: 60px }
-.dots { position: absolute; left: 0; right: 0; border-top: 1.5px dotted var(--line) }
+.plot { position: relative; height: 72px; margin-right: 7.5em }
+.dots { position: absolute; left: 0; right: -7.5em; border-top: 1.5px dotted var(--line) }
+.dots span { position: absolute; right: 0; top: -7px; font-size: 10px; line-height: 12px; color: var(--sub); white-space: nowrap }
 .bars { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 2px }
 .bars i { flex: 1; background: var(--bar); border-radius: 2px 2px 0 0; min-width: 1px }
-.axis { position: relative; height: 18px; margin-top: 4px; font-size: 12px; color: var(--sub); font-variant-numeric: tabular-nums }
+.axis { position: relative; height: 18px; margin-top: 4px; margin-right: 7.5em; font-size: 12px; color: var(--sub); font-variant-numeric: tabular-nums }
 .axis span { position: absolute; transform: translateX(-50%); white-space: nowrap }
 .axis span:first-child { transform: none }
 
@@ -76,9 +77,10 @@ h1 { font-size: 16px; margin: 0 0 4px; font-weight: 700 }
     <h1 id="ttl">雨の予想です</h1>
     <p class="msg" id="msg">データを取ってきています…</p>
     <div class="plot">
-      <div class="dots" style="top:0"></div>
-      <div class="dots" style="top:33.3%"></div>
-      <div class="dots" style="top:66.6%"></div>
+      <!-- 目盛り(1時間あたりの雨量)。言葉は気象庁「雨の強さと降り方」より -->
+      <div class="dots" style="top:0"><span>50mm 滝のよう</span></div>
+      <div class="dots" style="top:33.3%"><span>20mm どしゃ降り</span></div>
+      <div class="dots" style="top:66.6%"><span>5mm</span></div>
       <div class="bars" id="bars"></div>
     </div>
     <div class="axis" id="axis"></div>
@@ -101,16 +103,16 @@ const LAT = 35.727, LON = 139.539, Z = 10;
 
 /* ---------- 1時間の雨(気象庁ナウキャスト) ---------- */
 const BASE = "https://www.jma.go.jp/bosai/jmatile/data/nowc/";
-// 気象庁の凡例の色(弱い順)。h = 棒の高さ(%)。点線は 33% / 66% / 100%
+// 気象庁の凡例の色(弱い順)。h = 棒の高さ(%)。点線は 5mm=33% / 20mm=66% / 50mm=100% に合わせてある
 const LEVELS = [
   { rgb: null,          h: 0 },
   { rgb: [242,242,255], h: 12 },  // 1mm未満
-  { rgb: [160,210,255], h: 28 },  // 1〜5mm
-  { rgb: [33,140,255],  h: 45 },  // 5〜10mm
-  { rgb: [0,65,255],    h: 62 },  // 10〜20mm
-  { rgb: [250,245,0],   h: 75 },  // 20〜30mm
-  { rgb: [255,153,0],   h: 86 },  // 30〜50mm
-  { rgb: [255,40,0],    h: 95 },  // 50〜80mm
+  { rgb: [160,210,255], h: 33 },  // 1〜5mm   → 5mmの線まで
+  { rgb: [33,140,255],  h: 50 },  // 5〜10mm
+  { rgb: [0,65,255],    h: 66 },  // 10〜20mm → 20mmの線まで
+  { rgb: [250,245,0],   h: 80 },  // 20〜30mm
+  { rgb: [255,153,0],   h: 100 }, // 30〜50mm → 50mmの線まで
+  { rgb: [255,40,0],    h: 100 }, // 50〜80mm
   { rgb: [180,0,104],   h: 100 }, // 80mm以上
 ];
 const n = 2 ** Z;
