@@ -56,9 +56,11 @@ h1 { font-size: 16px; margin: 0; font-weight: 700 }
 .d .w { font-size: 15px; font-weight: 600 }
 .d .ic svg { display: block }
 .d .p { font-size: 11px; color: var(--pop); font-weight: 700 }
-.d .mm { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--sub) }
-.d .mm .g { flex: 1; height: 8px; display: flex; align-items: center }
-.d .mm .g i { display: block; height: 8px; border-radius: 2px; background: var(--bar) }
+.d .mm { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--sub); align-self: stretch; margin: -6px 0 }
+.d .mm .g { flex: 1; position: relative; align-self: stretch; margin: 0 4px 0 2px }
+.d .mm .g svg { position: absolute; inset: 0; width: 100%; height: 100% }
+.d .mm .g svg polyline { fill: none; stroke: var(--bar); stroke-width: 2; vector-effect: non-scaling-stroke; stroke-linejoin: round }
+.d .mm .g u { position: absolute; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; top: 50%; border-radius: 50%; background: var(--bar); box-shadow: 0 0 0 1.5px rgba(0,0,0,.3) }
 .d .mm span { width: 3.4em; text-align: right }
 .d .lo { font-size: 15px; color: var(--sub); text-align: right }
 .d .hi { font-size: 15px }
@@ -299,6 +301,12 @@ async function loadWeather(rainNow) {
   const pos = t => (hi === lo ? 50 : (t - lo) / (hi - lo) * 100);
   const col = t => t < 10 ? "#5ac8fa" : t < 17 ? "#6fd3b0" : t < 23 ? "#b5dc52" : t < 28 ? "#ffd23f" : "#ff9f0a";
   const mmMax = Math.max(10, ...days.map(d => d.mm || 0));   // 棒の長さの基準:その週で一番多い日(最低でも10mm)
+  // 雨量の折れ線:1行に1点(左端=0mm、右端=基準の量)。前後の行の点とつないで、縦に一本の線になる
+  const xs = days.map(d => d.mm >= 0.5 ? Math.min(100, d.mm / mmMax * 96 + 2) : 2);
+  const lineOf = i => {
+    const x = xs[i], a = i > 0 ? (xs[i - 1] + x) / 2 : x, b = i < xs.length - 1 ? (xs[i + 1] + x) / 2 : x;
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="${a},0 ${x},50 ${b},100"/></svg><u style="left:${x}%"></u>`;
+  };
   const mm = v => v == null ? "" : v < 0.5 ? "0mm" : v < 10 ? `${v.toFixed(1)}mm` : `${Math.round(v)}mm`;
   document.getElementById("days").innerHTML =
     `<div class="d head"><div></div><div></div><div>確率</div><div style="text-align:right">雨量</div><div></div><div></div><div></div></div>` +
@@ -306,7 +314,7 @@ async function loadWeather(rainNow) {
       const wd = i === 0 ? "今日" : "日月火水木金土"[new Date(d.t + "T00:00:00Z").getUTCDay()];   // 日付だけで曜日を出す(見る人の時差に左右されない)
       const dot = i === 0 ? `<i class="dot" style="left:${pos(c.temperature_2m)}%"></i>` : "";
       return `<div class="d"><div class="w">${wd}</div><div class="ic">${d.ic}</div>`
-           + `<div class="p">${d.p}</div><div class="mm"><div class="g"><i style="width:${d.mm >= 0.5 ? Math.max(6, Math.min(100, d.mm / mmMax * 100)) : 0}%"></i></div><span>${mm(d.mm)}</span></div><div class="lo">${Math.round(d.mn)}°</div>`
+           + `<div class="p">${d.p}</div><div class="mm"><div class="g">${lineOf(i)}</div><span>${mm(d.mm)}</span></div><div class="lo">${Math.round(d.mn)}°</div>`
            + `<div class="track"><i class="seg" style="left:${pos(d.mn)}%;width:${pos(d.mx) - pos(d.mn)}%;background:linear-gradient(90deg,${col(d.mn)},${col(d.mx)})"></i>${dot}</div>`
            + `<div class="hi">${Math.round(d.mx)}°</div></div>`;
     }).join("");
