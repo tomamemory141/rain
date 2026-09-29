@@ -21,7 +21,7 @@ body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var
 .dow.sun, .day.sun .n { color: #ff9a8f }
 .dow.sat, .day.sat .n { color: var(--pop) }
 .day { min-height: 84px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 2px 4px 3px; overflow: hidden; cursor: pointer }
-.day.out { opacity: .42 }
+.day.out { opacity: .6 }
 .day.sel { background: rgba(255,255,255,.14) }
 .day:hover { background: rgba(255,255,255,.07) }
 .n { font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; height: 20px }
@@ -31,10 +31,10 @@ body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var
 .hn { font-size: 11.5px; font-weight: 700; color: #ff9d94; line-height: 14px; margin: -2px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .day.today .n b { background: var(--pop); color: #16202b }
 .day.today { box-shadow: inset 0 0 0 1.5px var(--pop) }
-.ev { display: block; font-size: 12.5px; font-weight: 700; line-height: 17px; padding: 0 6px; margin-top: 2px; border-radius: 4px; color: #10202e; background: var(--c); border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.ev { display: block; font-size: 12.5px; font-weight: 700; line-height: 17px; padding: 0 6px; margin-top: 2px; border-radius: 4px; color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,.28); background: var(--c); border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .ev i { font-style: normal; opacity: .7; margin-right: 3px }
-.ev i { font-style: normal; font-weight: 600; opacity: .72; margin-right: 4px; font-variant-numeric: tabular-nums }
-.more { font-size: 11px; color: var(--sub); margin-top: 2px }
+.ev i { font-style: normal; font-weight: 600; opacity: .9; margin-right: 4px; font-variant-numeric: tabular-nums }
+.more { font-size: 11px; color: var(--pop); margin-top: 2px; cursor: pointer }
 .list { margin-top: 5px; padding: 7px 12px; border-radius: 16px; background: var(--card) }
 .list h2 { font-size: 14px; margin: 0 0 3px; font-weight: 700 }
 .li { display: flex; gap: 10px; align-items: baseline; font-size: 14px; padding: 2px 0 }
@@ -55,11 +55,9 @@ body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var
 .mode button:last-child { border-radius: 0 8px 8px 0; border-left: 0 }
 .mode button.on { background: var(--pop); color: #16202b; border-color: var(--pop); font-weight: 700 }
 /* 過ぎた日は少し暗く */
-.day.past { background: rgba(0,0,0,.16) }
-.day.past .ev { opacity: .5 }
-.day.past .n { opacity: .65 }
+.day.past .n { opacity: .55 }
 /* 週表示:1週間だけ大きく、予定は全部出す */
-.wk .day { min-height: 190px }
+.wk .day { min-height: 130px }
 .wk .ev { white-space: normal; overflow: visible; line-height: 17px; padding: 2px 6px }
 .wk .n { height: 24px; font-size: 14px }
 /* 幅がせまい時(Notionの枠がせまい時)は、予定を折り返して読めるようにする */
@@ -77,7 +75,6 @@ body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var
 <div class="bar"><button id="prev">‹</button><h1 id="ttl"></h1><span class="mode"><button id="mMonth">月</button><button id="mWeek">週</button></span><button id="today">今日</button><button id="next">›</button></div>
 <div class="grid" id="grid"></div>
 </div>
-<div class="list" id="list"></div>
 <div class="msg" id="msg"></div>
 <script>
 const q = new URLSearchParams(location.search);
@@ -88,8 +85,8 @@ const fmt = new Intl.DateTimeFormat("sv-SE", { timeZone: TZ, year: "numeric", mo
 const jst = d => { const s = fmt.format(d); return { ymd: s.slice(0, 10), hm: s.slice(11, 16) }; };   // 日本時間の「年-月-日」と「時:分」
 const ymdOf = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;       // m は 0〜11
 // 予定の色(人生グラフの棒と同じ、はっきりした色)。ふだんは水色。題名で色を変えるものは、上から順に見て最初に合ったものを使う
-const BASE = "#8fd4ff";                 // ふだんの予定 = 水色
-const GREEN = "#5fd38d";                // A残塩・B・C・宿直 = 緑
+const BASE = "#3fa2ff";                 // ふだんの予定 = 水色(白い字が読める濃さ)
+const GREEN = "#2eb872";                // A残塩・B・C・宿直 = 緑(白い字が読める濃さ)
 const RULES = [
   [/^A残塩/, GREEN],
   [/^B$/,    GREEN],
@@ -145,7 +142,7 @@ function cell(key, map, o) {
   return `<div class="day${o.out ? " out" : ""}${key === nowJ.ymd ? " today" : ""}${key < nowJ.ymd ? " past" : ""}${key === sel ? " sel" : ""}${hols.length ? " hol" : ""}${dow === 0 ? " sun" : dow === 6 ? " sat" : ""}" data-d="${key}">`
     + `<div class="n"><b>${+key.slice(8)}</b></div>` + hols.map(e => `<div class="hn">${e.t}</div>`).join("")
     + show.map(e => `<span class="ev" style="--c:${e.col}">${hmTxt(e) ? `<i>${hmTxt(e)}</i>` : ""}${e.t}</span>`).join("")
-    + (more > 0 ? `<div class="more">ほか ${more} 件</div>` : "") + `</div>`;
+    + (more > 0 ? `<div class="more" data-w="${key}">ほか ${more} 件 ›</div>` : "") + `</div>`;
 }
 
 function draw() {
@@ -168,9 +165,7 @@ function draw() {
   document.getElementById("mMonth").className = mode === "month" ? "on" : "";
   document.getElementById("mWeek").className = mode === "week" ? "on" : "";
   document.querySelectorAll(".day").forEach(el => el.onclick = () => { sel = el.dataset.d; draw(); });
-  const l = map[sel] || [];
-  document.getElementById("list").innerHTML = `<h2>${+sel.slice(5, 7)}月${+sel.slice(8)}日(${DOW[dowOf(sel)]})</h2>`
-    + (l.length ? l.map(e => `<div class="li"><span class="dot" style="--c:${e.col}"></span><span class="t">${evTime(e)}</span><span>${e.t}</span><span class="c">${e.c}</span></div>`).join("") : `<div class="none">予定はありません</div>`);
+  document.querySelectorAll(".more").forEach(el => el.onclick = ev => { ev.stopPropagation(); mode = "week"; wk = weekStart(el.dataset.w); sel = el.dataset.w; draw(); load(); });   // 「ほか◯件」を押すと、その週の週表示
   drawNow();
 }
 
