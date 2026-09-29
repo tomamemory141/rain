@@ -6,20 +6,20 @@
 <title>時間の進み具合</title>
 <style>
 /* 今日・今週・今月・今年・人生が、どれだけ進んだかを棒で出す。誕生日は ?b=1992-12-01 のようにアドレスで渡す(ページの中には書かない) */
-:root { --sky1: #3a4a5e; --sky2: #26313f; --fg: #fff; --sub: rgba(255,255,255,.72); --font: -apple-system, "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif; color-scheme: dark }
+:root { --fg: #1b2733; --sub: #5d6b79; --font: -apple-system, "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif; color-scheme: light }
 * { box-sizing: border-box }
 html, body { margin: 0 }
-body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var(--fg); font-family: var(--font); padding: 6px 12px; min-height: 100vh }
+body { background: #fff; color: var(--fg); font-family: var(--font); padding: 6px 12px; min-height: 100vh }
 .wrap { max-width: 560px; display: grid; gap: 8px }
 .row { display: grid; grid-template-columns: 128px 1fr 56px 126px; align-items: center; gap: 8px }
 .row .n { font-size: 15px; font-weight: 700; white-space: nowrap }
 .row .n small { font-size: 11px; font-weight: 400; color: var(--sub); margin-left: 5px }
 .row .pct { font-size: 15px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 700 }
-.bar { position: relative; height: 14px; border-radius: 7px; background: rgba(0,0,0,.28); overflow: hidden }
-.bar b { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; border-left: 1px solid rgba(20,30,45,.65); border-right: 1px solid rgba(255,255,255,.45) }
+.bar { position: relative; height: 14px; border-radius: 7px; background: rgba(20,40,60,.09); overflow: hidden }
+.bar b { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; border-left: 1px solid rgba(20,30,45,.35); border-right: 1px solid rgba(255,255,255,.7) }
 .bar i { display: block; height: 100%; border-radius: 7px; background: var(--c); min-width: 3px }
 .left { font-size: 12px; color: var(--sub); white-space: nowrap }
-.cd { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; padding: 4px 0 0; border-top: 1px solid rgba(255,255,255,.28) }
+.cd { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; padding: 4px 0 0; border-top: 1px solid rgba(20,40,60,.14) }
 .cd .n { font-size: 15px; font-weight: 700; flex: 1 1 auto; white-space: nowrap }
 .cd .memo { width: 100%; font-size: 11px; color: var(--sub); line-height: 1.4 }
 .cd .n small { font-size: 11px; font-weight: 400; color: var(--sub); margin-left: 6px }

@@ -7,15 +7,15 @@
 <style>
 /* iPhone天気アプリ風:暗い空の上に 上=現在の気温 / 中=1時間の雨 / 下=1時間ごとの予報 */
 :root {
-  --sky1: #3a4a5e; --sky2: #26313f;
-  --card: rgba(255,255,255,.10); --line: rgba(255,255,255,.28);
-  --fg: #ffffff; --sub: rgba(255,255,255,.72); --bar: #8fd4ff; --pop: #8fd4ff;
+  --sky1: #ffffff; --sky2: #ffffff;
+  --card: #f3f6fa; --line: rgba(20,40,60,.14);
+  --fg: #1b2733; --sub: #5d6b79; --bar: #3d9bff; --pop: #2b7fd0;
   --font: -apple-system, "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
-  color-scheme: dark;
+  color-scheme: light;
 }
 * { box-sizing: border-box }
 html, body { margin: 0 }
-body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var(--fg); font-family: var(--font); padding: 6px 12px; min-height: 100vh }
+body { background: #fff; color: var(--fg); font-family: var(--font); padding: 6px 12px; min-height: 100vh }
 .wrap { max-width: 560px; display: grid; gap: 6px }
 
 .now { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; padding: 0 4px }
@@ -29,9 +29,9 @@ body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var
 h1 { font-size: 16px; margin: 0; font-weight: 700 }
 .msg { font-size: 13px; margin: 0 }
 .msg.sum { font-weight: 700; color: var(--pop) }
-.plot { position: relative; height: 84px; margin-right: 7.5em; border-bottom: 1px solid rgba(255,255,255,.45) }
-.dots { position: absolute; left: 0; right: -7.5em; border-top: 1.5px dashed rgba(255,255,255,.35) }
-.dots span { position: absolute; right: 0; top: -7px; font-size: 11px; line-height: 13px; color: rgba(255,255,255,.9); white-space: nowrap }
+.plot { position: relative; height: 84px; margin-right: 7.5em; border-bottom: 1px solid rgba(20,40,60,.3) }
+.dots { position: absolute; left: 0; right: -7.5em; border-top: 1.5px dashed rgba(20,40,60,.22) }
+.dots span { position: absolute; right: 0; top: -7px; font-size: 11px; line-height: 13px; color: #34434f; white-space: nowrap }
 .dots span b { display: inline-block; width: 3.2em; text-align: right; margin-right: 4px; font-weight: 700 }
 .bars { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 2px }
 .bars i { flex: 1; background: var(--bar); border-radius: 2px 2px 0 0; min-width: 1px }
@@ -60,10 +60,10 @@ h1 { font-size: 16px; margin: 0; font-weight: 700 }
 .d .ic svg { display: block }
 .d .p { font-size: 11px; color: var(--pop); font-weight: 700 }
 .d .mm { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--sub); align-self: stretch; margin: -4px 0 }
-.d .mm .g { flex: 1; position: relative; align-self: stretch; margin: 4px 0; border-bottom: 1px solid rgba(255,255,255,.35) }
+.d .mm .g { flex: 1; position: relative; align-self: stretch; margin: 4px 0; border-bottom: 1px solid rgba(20,40,60,.28) }
 .d .mm .g svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible }
 .d .mm .g svg polyline { fill: none; stroke: var(--bar); stroke-width: 1.6; vector-effect: non-scaling-stroke; stroke-linejoin: round }
-.d .mm .g svg .gl { stroke: rgba(255,255,255,.22); stroke-width: 1; stroke-dasharray: 2 2; vector-effect: non-scaling-stroke }
+.d .mm .g svg .gl { stroke: rgba(20,40,60,.18); stroke-width: 1; stroke-dasharray: 2 2; vector-effect: non-scaling-stroke }
 .d .mm .g svg polygon { fill: var(--bar); opacity: .28; stroke: none }
 .d .mm span { width: 3.4em; text-align: right }
 .d .ax { position: relative; flex: 1; height: 12px }
@@ -71,9 +71,9 @@ h1 { font-size: 16px; margin: 0; font-weight: 700 }
 .d .ax b:first-child { transform: none }
 .d .lo { font-size: 15px; color: var(--sub); text-align: right }
 .d .hi { font-size: 15px }
-.track { position: relative; height: 5px; border-radius: 3px; background: rgba(0,0,0,.25) }
+.track { position: relative; height: 5px; border-radius: 3px; background: rgba(20,40,60,.12) }
 .seg { position: absolute; top: 0; bottom: 0; border-radius: 3px }
-.dot { position: absolute; top: 50%; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 1.5px rgba(0,0,0,.35) }
+.dot { position: absolute; top: 50%; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 1.5px rgba(20,40,60,.55) }
 
 .foot { font-size: 10px; color: var(--sub); text-align: right }
 .foot a { color: inherit }
@@ -124,14 +124,14 @@ const BASE = "https://www.jma.go.jp/bosai/jmatile/data/nowc/";
 // bar = 棒の色。暗い背景でも見えるよう気象庁の色を少し明るくしたもの
 const LEVELS = [
   { rgb: null,          h: 0 },
-  { rgb: [242,242,255], h: 10,  bar: "#d6ecff" }, // 1mm未満
-  { rgb: [160,210,255], h: 25,  bar: "#8fd4ff" }, // 1〜5mm   → 5mmの線まで
-  { rgb: [33,140,255],  h: 50,  bar: "#3d9bff" }, // 5〜10mm  → 10mmの線まで
-  { rgb: [0,65,255],    h: 75,  bar: "#4a6bff" }, // 10〜20mm → 20mmの線まで
-  { rgb: [250,245,0],   h: 85,  bar: "#fff200" }, // 20〜30mm
-  { rgb: [255,153,0],   h: 100, bar: "#ff9900" }, // 30〜50mm → 50mmの線まで
-  { rgb: [255,40,0],    h: 100, bar: "#ff3b1f" }, // 50〜80mm
-  { rgb: [180,0,104],   h: 100, bar: "#d0137f" }, // 80mm以上
+  { rgb: [242,242,255], h: 10,  bar: "#b7dcff" }, // 1mm未満
+  { rgb: [160,210,255], h: 25,  bar: "#5bb6f5" }, // 1〜5mm   → 5mmの線まで
+  { rgb: [33,140,255],  h: 50,  bar: "#2f8fef" }, // 5〜10mm  → 10mmの線まで
+  { rgb: [0,65,255],    h: 75,  bar: "#3b5bdb" }, // 10〜20mm → 20mmの線まで
+  { rgb: [250,245,0],   h: 85,  bar: "#f5b800" }, // 20〜30mm
+  { rgb: [255,153,0],   h: 100, bar: "#f08c00" }, // 30〜50mm → 50mmの線まで
+  { rgb: [255,40,0],    h: 100, bar: "#e03131" }, // 50〜80mm
+  { rgb: [180,0,104],   h: 100, bar: "#ae1e6c" }, // 80mm以上
 ];
 const n = 2 ** Z;
 const xf = (LON + 180) / 360 * n;
@@ -193,27 +193,27 @@ function drawRain(lvs) {
 
 /* ---------- 上:現在の気温 / 下:1時間ごとの予報(Open-Meteo) ---------- */
 // 天気アイコン(iPhone風:白い雲・黄色い太陽・水色の雨粒)
-const SUN_C = "#ffd23f", DROP_C = "#5ac8fa";
-const CLOUD = (dy = 0, op = 1) => `<path transform="translate(0 ${dy})" opacity="${op}" fill="#fff" d="M9.5 25h13.5a5.5 5.5 0 0 0 .9-10.93A7.5 7.5 0 0 0 9.6 15.1 5 5 0 0 0 9.5 25z"/>`;
+const SUN_C = "#f5a800", DROP_C = "#2f9bea", CLOUD_C = "#b3c1d0", INK = "#7c8b9a";
+const CLOUD = (dy = 0, op = 1) => `<path transform="translate(0 ${dy})" opacity="${op}" fill="${CLOUD_C}" d="M9.5 25h13.5a5.5 5.5 0 0 0 .9-10.93A7.5 7.5 0 0 0 9.6 15.1 5 5 0 0 0 9.5 25z"/>`;
 const SUN = (cx = 16, cy = 16, r = 5.5) => `<g stroke="${SUN_C}" stroke-width="2.2" stroke-linecap="round">${[0,45,90,135,180,225,270,315].map(a => {
   const s = Math.sin(a * Math.PI / 180), c = Math.cos(a * Math.PI / 180);
   return `<line x1="${cx + c * (r + 2.5)}" y1="${cy + s * (r + 2.5)}" x2="${cx + c * (r + 5)}" y2="${cy + s * (r + 5)}"/>`; }).join("")}</g><circle cx="${cx}" cy="${cy}" r="${r}" fill="${SUN_C}"/>`;
-const MOON = `<path fill="#f2f2f7" d="M20 5.5a10.5 10.5 0 1 0 7 17.9A9 9 0 0 1 20 5.5z"/>`;
+const MOON = `<path fill="${INK}" d="M20 5.5a10.5 10.5 0 1 0 7 17.9A9 9 0 0 1 20 5.5z"/>`;
 const DROPS = n => `<g stroke="${DROP_C}" stroke-width="2.2" stroke-linecap="round">${[11, 16, 21, 13.5, 18.5].slice(0, n).map((x, i) =>
   `<line x1="${x}" y1="${i < 3 ? 23 : 28}" x2="${x - 1.5}" y2="${i < 3 ? 27 : 31}"/>`).join("")}</g>`;
 const ICONS = {
   clear:  d => d ? SUN() : MOON,
   partly: d => (d ? SUN(21, 11, 4.2) : `<g transform="translate(6 -3) scale(.7)">${MOON}</g>`) + CLOUD(3),
   cloudy: () => CLOUD(-1),
-  fog:    () => CLOUD(-5) + `<g stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".8"><line x1="7" y1="25" x2="25" y2="25"/><line x1="10" y1="29" x2="22" y2="29"/></g>`,
+  fog:    () => CLOUD(-5) + `<g stroke="${INK}" stroke-width="2" stroke-linecap="round" opacity=".8"><line x1="7" y1="25" x2="25" y2="25"/><line x1="10" y1="29" x2="22" y2="29"/></g>`,
   drizzle:() => CLOUD(-5) + DROPS(2),
   rain:   () => CLOUD(-5) + DROPS(3),
   heavy:  () => CLOUD(-6) + DROPS(5),
-  snow:   () => CLOUD(-5) + `<g fill="#fff">${[[11,25],[16,28],[21,25]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.6"/>`).join("")}</g>`,
+  snow:   () => CLOUD(-5) + `<g fill="#7fb7e6">${[[11,25],[16,28],[21,25]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.6"/>`).join("")}</g>`,
   sunrain:() => SUN(21, 8, 3.8) + CLOUD(-4) + DROPS(2),
   thunder:() => CLOUD(-5) + `<path fill="${SUN_C}" d="M17 19l-4 7h3.5l-2 5 6-8h-3.5l2-4z"/>`,
-  sunrise:() => `<clipPath id="hz"><rect width="32" height="22"/></clipPath><g clip-path="url(#hz)">${SUN(16, 22, 5)}</g><line x1="5" y1="22" x2="27" y2="22" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M16 31v-6m-3 3l3-3 3 3" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
-  sunset: () => `<clipPath id="hz2"><rect width="32" height="22"/></clipPath><g clip-path="url(#hz2)">${SUN(16, 22, 5)}</g><line x1="5" y1="22" x2="27" y2="22" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M16 25v6m-3-3l3 3 3-3" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
+  sunrise:() => `<clipPath id="hz"><rect width="32" height="22"/></clipPath><g clip-path="url(#hz)">${SUN(16, 22, 5)}</g><line x1="5" y1="22" x2="27" y2="22" stroke="${INK}" stroke-width="2" stroke-linecap="round"/><path d="M16 31v-6m-3 3l3-3 3 3" stroke="${INK}" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
+  sunset: () => `<clipPath id="hz2"><rect width="32" height="22"/></clipPath><g clip-path="url(#hz2)">${SUN(16, 22, 5)}</g><line x1="5" y1="22" x2="27" y2="22" stroke="${INK}" stroke-width="2" stroke-linecap="round"/><path d="M16 25v6m-3-3l3 3 3-3" stroke="${INK}" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
 };
 const svg = (name, day = 1) => `<svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true">${ICONS[name](day)}</svg>`;
 

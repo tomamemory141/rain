@@ -6,35 +6,35 @@
 <title>カレンダー</title>
 <style>
 /* Googleカレンダーの予定を月表示で出す。予定の窓口(Apps Script)のアドレスと合言葉は、ページの中に書かず ?g=…&k=… で渡す */
-:root { --sky1: #3a4a5e; --sky2: #26313f; --fg: #fff; --sub: rgba(255,255,255,.72); --line: rgba(255,255,255,.28); --card: rgba(255,255,255,.10); --pop: #8fd4ff;
-  --font: -apple-system, "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif; color-scheme: dark }
+:root { --fg: #1b2733; --sub: #5d6b79; --line: rgba(20,40,60,.14); --card: #f3f6fa; --pop: #8fd4ff; --popText: #2b7fd0;
+  --font: -apple-system, "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif; color-scheme: light }
 * { box-sizing: border-box }
 html, body { margin: 0 }
-body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var(--fg); font-family: var(--font); padding: 6px 12px; min-height: 100vh }
+body { background: #fff; color: var(--fg); font-family: var(--font); padding: 6px 12px; min-height: 100vh }
 .card { background: var(--card); border-radius: 16px; padding: 8px 12px 10px; backdrop-filter: blur(12px) }
 .bar { display: flex; align-items: center; gap: 8px; margin-bottom: 6px }
 .bar h1 { font-size: 18px; margin: 0; font-weight: 700; flex: 1 }
-.bar button { background: rgba(255,255,255,.10); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 4px 12px; font: inherit; font-size: 15px; cursor: pointer }
-.bar button:hover { background: rgba(255,255,255,.22) }
-.grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line); background: #4a5869 }   /* マスの中の色(天気予報の雨グラフと同じ) */
+.bar button { background: #fff; color: var(--fg); border: 1px solid rgba(20,40,60,.22); border-radius: 8px; padding: 4px 12px; font: inherit; font-size: 15px; cursor: pointer }
+.bar button:hover { background: #eef3f8 }
+.grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line); background: #fff }   /* マスの中の色(天気予報の雨グラフと同じ) */
 .dow { font-size: 12px; font-weight: 700; color: var(--sub); text-align: center; padding: 3px 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line) }
-.dow.sun, .day.sun .n { color: #ff9a8f }
-.dow.sat, .day.sat .n { color: var(--pop) }
+.dow.sun, .day.sun .n { color: #d9483b }
+.dow.sat, .day.sat .n { color: #2b7fd0 }
 .day { min-height: 84px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 2px 4px 3px; overflow: hidden; cursor: pointer }
 .day.out { opacity: .6 }
-.day.sel { background: rgba(255,255,255,.14) }
-.day:hover { background: rgba(255,255,255,.07) }
+.day.sel { background: rgba(43,127,208,.09) }
+.day:hover { background: rgba(20,40,60,.04) }
 .n { font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; height: 20px }
 .n b { display: inline-block; min-width: 20px; height: 20px; line-height: 20px; border-radius: 10px; text-align: center; font-weight: 700 }
-.day.hol { background: rgba(255,140,130,.12) }
-.day.hol .n b { color: #ff8f85 }
-.hn { font-size: 11.5px; font-weight: 700; color: #ff9d94; line-height: 14px; margin: -2px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.day.hol { background: rgba(230,80,70,.08) }
+.day.hol .n b { color: #d9483b }
+.hn { font-size: 11.5px; font-weight: 700; color: #d9483b; line-height: 14px; margin: -2px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .day.today .n b { background: var(--pop); color: #16202b }
-.day.today { box-shadow: inset 0 0 0 1.5px var(--pop) }
-.ev { display: block; font-size: 12.5px; font-weight: 500; line-height: 17px; padding: 0 6px; margin-top: 2px; border-radius: 4px; color: #fff; background: var(--bg); border-left: 3px solid var(--c); border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.day.today { box-shadow: inset 0 0 0 1.5px #5bb6f5 }
+.ev { display: block; font-size: 12.5px; font-weight: 500; line-height: 17px; padding: 0 6px; margin-top: 2px; border-radius: 4px; color: #1b2733; background: var(--bg); border-left: 3px solid var(--c); border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .ev i { font-style: normal; opacity: .7; margin-right: 3px }
 .ev i { font-style: normal; font-weight: 600; opacity: .9; margin-right: 4px; font-variant-numeric: tabular-nums }
-.more { font-size: 11px; color: var(--pop); margin-top: 2px; cursor: pointer }
+.more { font-size: 11px; color: var(--popText); margin-top: 2px; cursor: pointer }
 .list { margin-top: 5px; padding: 7px 12px; border-radius: 16px; background: var(--card) }
 .list h2 { font-size: 14px; margin: 0 0 3px; font-weight: 700 }
 .li { display: flex; gap: 10px; align-items: baseline; font-size: 14px; padding: 2px 0 }
@@ -45,7 +45,7 @@ body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var
 .msg { font-size: 12px; color: var(--sub); padding: 6px 2px }
 /* 今日・次の予定の一行 */
 .nowline { font-size: 14px; line-height: 1.5; padding: 0 2px 8px }
-.nowline b { color: var(--pop); margin-right: 6px }
+.nowline b { color: var(--popText); margin-right: 6px }
 .nowline .nx { display: block; color: var(--sub); font-size: 13px }
 .nowline .nx b { color: var(--sub) }
 /* 月/週の切り替え */
@@ -129,7 +129,7 @@ function drawNow() {
   const map = byDay(upc), today = map[nowJ.ymd] || [];
   const hol = today.filter(e => e.hol).map(e => e.t).join("・"), items = today.filter(e => !e.hol);
   const part = e => `${hmTxt(e) ? hmTxt(e) + " " : ""}${e.t}`;
-  let html = `<b>今日 ${md(nowJ.ymd)}</b>${hol ? `<span style="color:#ff9d94">${hol}</span> ` : ""}${items.length ? items.map(part).join(" / ") : "予定なし"}`;
+  let html = `<b>今日 ${md(nowJ.ymd)}</b>${hol ? `<span style="color:#d9483b">${hol}</span> ` : ""}${items.length ? items.map(part).join(" / ") : "予定なし"}`;
   for (let k = 1; k <= 30; k++) {
     const key = addDays(nowJ.ymd, k), l = (map[key] || []).filter(e => !e.hol);
     if (l.length) { html += `<span class="nx"><b>次 ${md(key)}</b>${part(l[0])}${l.length > 1 ? ` ほか${l.length - 1}件` : ""}</span>`; break; }
