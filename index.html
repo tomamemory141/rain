@@ -69,6 +69,7 @@ h1 { font-size: 16px; margin: 0; font-weight: 700 }
 <body>
 <div class="wrap">
   <div class="now">
+    <div class="hl" id="clock">--:-- 更新</div>
     <div class="place">田無</div>
     <div class="temp" id="temp">--°</div>
     <div class="hl" id="hl">最高 --° 最低 --°</div>
@@ -306,6 +307,7 @@ async function loadWeather(rainNow) {
 }
 
 async function load() {
+  document.getElementById("clock").textContent = `${hm(new Date())} 更新`;   // 読み込んだ時刻(5分ごとに変わる)
   let rainNow = 0;
   try { rainNow = (await loadRain())[0]; }
   catch (e) { document.getElementById("msg").textContent = "雨のデータを取れませんでした。少し待って再読み込みしてください。"; }
