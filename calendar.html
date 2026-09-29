@@ -31,7 +31,7 @@ body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var
 .hn { font-size: 11.5px; font-weight: 700; color: #ff9d94; line-height: 14px; margin: -2px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .day.today .n b { background: var(--pop); color: #16202b }
 .day.today { box-shadow: inset 0 0 0 1.5px var(--pop) }
-.ev { display: block; font-size: 12.5px; font-weight: 700; line-height: 17px; padding: 0 6px; margin-top: 2px; border-radius: 4px; color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,.28); background: var(--c); border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.ev { display: block; font-size: 12.5px; font-weight: 700; line-height: 17px; padding: 0 6px; margin-top: 2px; border-radius: 4px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.4); background: var(--c); border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .ev i { font-style: normal; opacity: .7; margin-right: 3px }
 .ev i { font-style: normal; font-weight: 600; opacity: .9; margin-right: 4px; font-variant-numeric: tabular-nums }
 .more { font-size: 11px; color: var(--pop); margin-top: 2px; cursor: pointer }
@@ -85,8 +85,8 @@ const fmt = new Intl.DateTimeFormat("sv-SE", { timeZone: TZ, year: "numeric", mo
 const jst = d => { const s = fmt.format(d); return { ymd: s.slice(0, 10), hm: s.slice(11, 16) }; };   // 日本時間の「年-月-日」と「時:分」
 const ymdOf = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;       // m は 0〜11
 // 予定の色(人生グラフの棒と同じ、はっきりした色)。ふだんは水色。題名で色を変えるものは、上から順に見て最初に合ったものを使う
-const BASE = "#3fa2ff";                 // ふだんの予定 = 水色(白い字が読める濃さ)
-const GREEN = "#2eb872";                // A残塩・B・C・宿直 = 緑(白い字が読める濃さ)
+const BASE = "#8fd4ff";                 // ふだんの予定 = 水色(人生グラフの棒と同じ明るい水色)
+const GREEN = "#5fd38d";                // A残塩・B・C・宿直 = 緑(明るい緑)
 const RULES = [
   [/^A残塩/, GREEN],
   [/^B$/,    GREEN],
