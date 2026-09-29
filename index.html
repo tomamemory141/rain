@@ -23,6 +23,7 @@ body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var
 .now .temp { font-size: 30px; font-weight: 300; line-height: 1 }
 .now .hl, .now .cond { font-size: 13px; color: var(--sub) }
 
+.umb { font-size: 15px; font-weight: 700; padding: 0 4px }
 .card { background: var(--card); border-radius: 16px; padding: 12px 16px 10px; backdrop-filter: blur(12px); min-width: 0 }
 .title { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 0 0 12px }
 h1 { font-size: 16px; margin: 0; font-weight: 700 }
@@ -86,6 +87,8 @@ h1 { font-size: 16px; margin: 0; font-weight: 700 }
     <div class="hl" id="hl">最高 --° 最低 --°</div>
     <div class="cond" id="cond">&nbsp;</div>
   </div>
+
+  <div class="umb" id="umb">&nbsp;</div>
 
   <div class="card">
     <div class="title"><h1 id="ttl">雨の予想です</h1><p class="msg" id="msg">データを取ってきています…</p></div>
@@ -261,8 +264,8 @@ async function loadWeather(rainNow) {
 
   // 下:現在 + 1時間ごと。日の出・日の入りが入る時間なら間に差し込む
   const HF = w.hourly, items = [];
-  const st = Math.max(0, HF.time.findIndex(t => t.slice(0, 13) >= c.time.slice(0, 13)));   // 今の時間から12時間分
-  const H = Object.fromEntries(Object.keys(HF).map(k => [k, HF[k].slice(st, st + 12)]));
+  const st = Math.max(0, HF.time.findIndex(t => t.slice(0, 13) >= c.time.slice(0, 13)));   // 今の時間から24時間分
+  const H = Object.fromEntries(Object.keys(HF).map(k => [k, HF[k].slice(st, st + 24)]));
   const pop = p => (p == null || p < 10) ? "" : `${Math.round(p / 10) * 10}%`;
   const mmTxt = m => m == null ? "" : (m > 0 && m < 1) ? `${m.toFixed(1)}mm` : `${Math.round(m)}mm`;
   H.time.forEach((t, i) => {
@@ -270,6 +273,22 @@ async function loadWeather(rainNow) {
     items.push({ t: i === 0 ? "現在" : `${+t.slice(11, 13)}時`, ic: i === 0 ? wx(c.weather_code, c.is_day).ic : e.ic,
                  p: pop(H.precipitation_probability?.[i]), v: `${Math.round(i === 0 ? c.temperature_2m : H.temperature_2m[i])}°`, mm: mmTxt(H.precipitation?.[i]), key: t });
   });
+  // 一番上のひとこと:この先24時間に傘がいるか(雨量0.3mm以上の時間を「雨」とする)
+  const today = c.time.slice(0, 10), wet = i => (H.precipitation[i] || 0) >= 0.3;
+  const lab = t => `${t.slice(0, 10) !== today ? "明日" : ""}${+t.slice(11, 13)}時`;
+  let umb;
+  if (rainNow || wet(0)) {
+    const k = H.time.findIndex((_, i) => i > 0 && !wet(i));
+    umb = k < 0 ? "☂ この先24時間、雨が続く予報。傘いる" : `☂ 今は雨。${lab(H.time[k])}ごろまで降りそう。傘いる`;
+  } else {
+    const k = H.time.findIndex((_, i) => wet(i));
+    if (k >= 0) umb = `☂ ${lab(H.time[k])}ごろから雨。出るなら傘いる`;
+    else {
+      const mp = Math.max(...H.precipitation_probability.map(v => v || 0));
+      umb = mp >= 50 ? `この先24時間、雨は降らない予報(降水確率は最大${mp}%)。折りたたみ傘があると安心` : "この先24時間、傘はいらない";
+    }
+  }
+  document.getElementById("umb").textContent = umb;
   const first = H.time[0], last = H.time[H.time.length - 1];
   [...w.daily.sunrise.map(s => [s, svg("sunrise"), "日の出"]), ...w.daily.sunset.map(s => [s, svg("sunset"), "日の入"])]
     .filter(([s]) => s > first && s < last)
