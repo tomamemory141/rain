@@ -26,9 +26,10 @@ body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var
 .card { background: var(--card); border-radius: 16px; padding: 12px 16px 10px; backdrop-filter: blur(12px); min-width: 0 }
 h1 { font-size: 16px; margin: 0 0 4px; font-weight: 700 }
 .msg { font-size: 13px; margin: 0 0 12px }
-.plot { position: relative; height: 72px; margin-right: 7.5em }
-.dots { position: absolute; left: 0; right: -7.5em; border-top: 1.5px dotted var(--line) }
-.dots span { position: absolute; right: 0; top: -7px; font-size: 10px; line-height: 12px; color: var(--sub); white-space: nowrap }
+.plot { position: relative; height: 120px; margin-right: 7.5em; border-bottom: 1px solid rgba(255,255,255,.45) }
+.dots { position: absolute; left: 0; right: -7.5em; border-top: 1.5px dashed rgba(255,255,255,.35) }
+.dots span { position: absolute; right: 0; top: -7px; font-size: 11px; line-height: 13px; color: rgba(255,255,255,.9); white-space: nowrap }
+.dots span b { display: inline-block; width: 3.2em; text-align: right; margin-right: 4px; font-weight: 700 }
 .bars { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 2px }
 .bars i { flex: 1; background: var(--bar); border-radius: 2px 2px 0 0; min-width: 1px }
 .axis { position: relative; height: 18px; margin-top: 4px; margin-right: 7.5em; font-size: 12px; color: var(--sub); font-variant-numeric: tabular-nums }
@@ -78,9 +79,10 @@ h1 { font-size: 16px; margin: 0 0 4px; font-weight: 700 }
     <p class="msg" id="msg">データを取ってきています…</p>
     <div class="plot">
       <!-- 目盛り(1時間あたりの雨量)。言葉は気象庁「雨の強さと降り方」より -->
-      <div class="dots" style="top:0"><span>50mm 滝のよう</span></div>
-      <div class="dots" style="top:33.3%"><span>20mm どしゃ降り</span></div>
-      <div class="dots" style="top:66.6%"><span>5mm</span></div>
+      <div class="dots" style="top:0"><span><b>50mm</b>滝のよう</span></div>
+      <div class="dots" style="top:25%"><span><b>20mm</b>どしゃ降り</span></div>
+      <div class="dots" style="top:50%"><span><b>10mm</b>ザーザー</span></div>
+      <div class="dots" style="top:75%"><span><b>5mm</b></span></div>
       <div class="bars" id="bars"></div>
     </div>
     <div class="axis" id="axis"></div>
@@ -103,17 +105,18 @@ const LAT = 35.727, LON = 139.539, Z = 10;
 
 /* ---------- 1時間の雨(気象庁ナウキャスト) ---------- */
 const BASE = "https://www.jma.go.jp/bosai/jmatile/data/nowc/";
-// 気象庁の凡例の色(弱い順)。h = 棒の高さ(%)。点線は 5mm=33% / 20mm=66% / 50mm=100% に合わせてある
+// 気象庁の凡例の色(弱い順)。h = 棒の高さ(%)。点線は 5mm=25% / 10mm=50% / 20mm=75% / 50mm=100%
+// bar = 棒の色。暗い背景でも見えるよう気象庁の色を少し明るくしたもの
 const LEVELS = [
   { rgb: null,          h: 0 },
-  { rgb: [242,242,255], h: 12 },  // 1mm未満
-  { rgb: [160,210,255], h: 33 },  // 1〜5mm   → 5mmの線まで
-  { rgb: [33,140,255],  h: 50 },  // 5〜10mm
-  { rgb: [0,65,255],    h: 66 },  // 10〜20mm → 20mmの線まで
-  { rgb: [250,245,0],   h: 80 },  // 20〜30mm
-  { rgb: [255,153,0],   h: 100 }, // 30〜50mm → 50mmの線まで
-  { rgb: [255,40,0],    h: 100 }, // 50〜80mm
-  { rgb: [180,0,104],   h: 100 }, // 80mm以上
+  { rgb: [242,242,255], h: 10,  bar: "#d6ecff" }, // 1mm未満
+  { rgb: [160,210,255], h: 25,  bar: "#8fd4ff" }, // 1〜5mm   → 5mmの線まで
+  { rgb: [33,140,255],  h: 50,  bar: "#3d9bff" }, // 5〜10mm  → 10mmの線まで
+  { rgb: [0,65,255],    h: 75,  bar: "#4a6bff" }, // 10〜20mm → 20mmの線まで
+  { rgb: [250,245,0],   h: 85,  bar: "#fff200" }, // 20〜30mm
+  { rgb: [255,153,0],   h: 100, bar: "#ff9900" }, // 30〜50mm → 50mmの線まで
+  { rgb: [255,40,0],    h: 100, bar: "#ff3b1f" }, // 50〜80mm
+  { rgb: [180,0,104],   h: 100, bar: "#d0137f" }, // 80mm以上
 ];
 const n = 2 ** Z;
 const xf = (LON + 180) / 360 * n;
@@ -158,7 +161,7 @@ async function loadRain() {
 function drawRain(lvs) {
   // 1分ごとの細い棒60本。値は5分ごとのデータをそのまま5本ずつ並べる(間を作り足さない)
   const mins = Array.from({ length: 60 }, (_, m) => lvs[Math.min(Math.floor(m / 5), lvs.length - 1)]);
-  document.getElementById("bars").innerHTML = mins.map(lv => `<i style="height:${LEVELS[lv].h}%"></i>`).join("");
+  document.getElementById("bars").innerHTML = mins.map(lv => `<i style="height:${LEVELS[lv].h}%${lv ? `;background:${LEVELS[lv].bar}` : ""}"></i>`).join("");
   document.getElementById("axis").innerHTML = ["現在", "10分", "20分", "30分", "40分", "50分"].map((t, i) => `<span style="left:${i * 10 / 60 * 100}%">${t}</span>`).join("");
   const at = i => i * 5;                                        // i番目のデータ = 現在から何分後
   const ttl = document.getElementById("ttl"), msg = document.getElementById("msg");
