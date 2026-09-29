@@ -11,12 +11,13 @@
 html, body { margin: 0 }
 body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var(--fg); font-family: var(--font); padding: 12px 16px; min-height: 100vh }
 .wrap { max-width: 560px; display: grid; gap: 12px }
-.row { display: grid; grid-template-columns: 3.2em 1fr 4.6em; align-items: center; gap: 10px }
+.row { display: grid; grid-template-columns: 3.2em 1fr 3.9em 8em; align-items: center; gap: 8px }
 .row .n { font-size: 15px; font-weight: 700 }
 .row .pct { font-size: 15px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 700 }
-.bar { height: 14px; border-radius: 7px; background: rgba(0,0,0,.28); overflow: hidden }
+.bar { position: relative; height: 14px; border-radius: 7px; background: rgba(0,0,0,.28); overflow: hidden }
+.bar b { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; border-left: 1px solid rgba(20,30,45,.65); border-right: 1px solid rgba(255,255,255,.45) }
 .bar i { display: block; height: 100%; border-radius: 7px; background: var(--c); min-width: 3px }
-.left { grid-column: 2 / 4; font-size: 11px; color: var(--sub); margin-top: -8px }
+.left { font-size: 12px; color: var(--sub); white-space: nowrap }
 .cd { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 8px 0 0; border-top: 1px solid rgba(255,255,255,.28) }
 .cd .n { font-size: 15px; font-weight: 700; flex: 1 1 auto; white-space: nowrap }
 .cd .d { font-size: 26px; font-weight: 300; font-variant-numeric: tabular-nums }
@@ -47,17 +48,27 @@ function span(unit, now) {
 const fmtLeft = (ms, unit) => {
   const min = Math.max(0, Math.floor(ms / 60000)), h = Math.floor(min / 60), day = ms / 86400000;
   if (unit === "day") return `あと ${h}時間${min % 60}分`;
-  if (unit === "life") return `あと 約${(day / 365.25).toFixed(1)}年(${Math.round(day).toLocaleString()}日)`;
+  if (unit === "life") return `あと ${(day / 365.25).toFixed(1)}年`;
   return `あと ${day >= 1 ? Math.floor(day) + "日" : ""}${day >= 1 ? "" : h + "時間"}`;
 };
+// 棒の区切り(今日=6時間ずつ / 今週=1日ずつ / 今月=5日ずつ / 今年=1か月ずつ / 人生=5年ずつ)。0〜1の位置で返す
+function ticks(unit, a, b) {
+  const t = [], r = d => (d - a) / (b - a);
+  if (unit === "day") for (let h = 6; h < 24; h += 6) t.push(h / 24);
+  if (unit === "week") for (let d = 1; d < 7; d++) t.push(d / 7);
+  if (unit === "month") { const n = Math.round((b - a) / 86400000); for (let d = 5; d < n; d += 5) t.push(d / n); }
+  if (unit === "year") for (let m = 1; m < 12; m++) t.push(r(new Date(a.getFullYear(), m, 1)));
+  if (unit === "life") for (let y = 5; y < LIFE; y += 5) { const d = new Date(a); d.setFullYear(d.getFullYear() + y); t.push(r(d)); }
+  return t;
+}
 const ROWS = [["day", "今日", "#8fd4ff"], ["week", "今週", "#6fd3b0"], ["month", "今月", "#b5dc52"], ["year", "今年", "#ffd23f"], ["life", "人生", "#ff9f0a"]];
 
 function draw() {
   const now = new Date();
   document.getElementById("wrap").innerHTML = ROWS.map(([u, name, c]) => {
-    if (u === "life" && !born) return `<div class="row"><div class="n">${name}</div><div class="left" style="grid-column:2/4;margin:0">誕生日が未設定です(アドレスの最後に ?b=1990-01-01 のように付けます)</div></div>`;
+    if (u === "life" && !born) return `<div class="row"><div class="n">${name}</div><div class="left" style="grid-column:2/-1;white-space:normal">誕生日が未設定です(アドレスの最後に ?b=1990-01-01 のように付けます)</div></div>`;
     const [a, b] = span(u, now), p = Math.min(100, Math.max(0, (now - a) / (b - a) * 100));
-    return `<div class="row"><div class="n">${name}</div><div class="bar"><i style="width:${p}%;--c:${c}"></i></div><div class="pct">${p.toFixed(1)}%</div><div class="left">${fmtLeft(b - now, u)}</div></div>`;
+    return `<div class="row"><div class="n">${name}</div><div class="bar"><i style="width:${p}%;--c:${c}"></i>${ticks(u, a, b).map(f => `<b style="left:${f * 100}%"></b>`).join("")}</div><div class="pct">${p.toFixed(1)}%</div><div class="left">${fmtLeft(b - now, u)}</div></div>`;
   }).join("");
   const t0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   document.getElementById("wrap").innerHTML += EVENTS.map(e => {
