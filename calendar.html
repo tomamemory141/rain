@@ -31,7 +31,7 @@ body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var
 .hn { font-size: 12px; font-weight: 700; color: #ff9d94; line-height: 16px; margin: -2px 0 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .day.today .n b { background: var(--pop); color: #16202b }
 .day.today { box-shadow: inset 0 0 0 1.5px var(--pop) }
-.ev { display: block; font-size: 13px; font-weight: 500; line-height: 20px; padding: 0 6px; margin-top: 3px; border-radius: 4px; color: #fff; background: var(--bg, rgba(143,212,255,.28)); border-left: 3px solid var(--c, #8fd4ff); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.ev { display: block; font-size: 13px; font-weight: 700; line-height: 20px; padding: 0 6px; margin-top: 3px; border-radius: 4px; color: #10202e; background: var(--c); border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .ev i { font-style: normal; opacity: .7; margin-right: 3px }
 .more { font-size: 12px; color: var(--sub); margin-top: 3px }
 .list { margin-top: 6px; padding: 10px 14px; border-radius: 16px; background: var(--card) }
@@ -59,14 +59,16 @@ const pad = n => String(n).padStart(2, "0");
 const fmt = new Intl.DateTimeFormat("sv-SE", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 const jst = d => { const s = fmt.format(d); return { ymd: s.slice(0, 10), hm: s.slice(11, 16) }; };   // 日本時間の「年-月-日」と「時:分」
 const ymdOf = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;       // m は 0〜11
-// 題名で色を決める(上から順に見て、最初に合ったものを使う)。ここを書き換えれば色を変えられる
+// 予定の色(人生グラフの棒と同じ、はっきりした色)。ふだんは水色。題名で色を変えるものは、上から順に見て最初に合ったものを使う
+const BASE = "#8fd4ff";                 // ふだんの予定 = 水色
+const GREEN = "#5fd38d";                // A残塩・B・C・宿直 = 緑
 const RULES = [
-  [/^A残塩/, "#ffb454"],   // A残塩 = オレンジ
-  [/^B$/,    "#6fd89a"],   // B = 緑
-  [/^C$/,    "#c39bff"],   // C = 紫
-  [/宿直/,   "#ff7ab6"],   // 宿直 = ピンク
+  [/^A残塩/, GREEN],
+  [/^B$/,    GREEN],
+  [/^C$/,    GREEN],
+  [/宿直/,   GREEN],
 ];
-const colorOf = (title, fallback) => { const r = RULES.find(([re]) => re.test(title || "")); return r ? r[1] : fallback; };
+const colorOf = title => { const r = RULES.find(([re]) => re.test(title || "")); return r ? r[1] : BASE; };
 const nowJ = jst(new Date());
 let view = { y: +nowJ.ymd.slice(0, 4), m: +nowJ.ymd.slice(5, 7) - 1 };
 let sel = nowJ.ymd, events = [];
@@ -77,7 +79,7 @@ function byDay(list) {
   list.forEach(e => {
     const s = new Date(e.s), en = new Date(e.e);
     const a = jst(s), b = jst(new Date(en - 1));
-    const item = { t: e.t, all: e.a, c: e.c, col: colorOf(e.t, e.col), hol: /祝日|holiday/i.test(e.c || ""), start: a.hm, end: jst(en).hm };
+    const item = { t: e.t, all: e.a, c: e.c, col: colorOf(e.t), hol: /祝日|holiday/i.test(e.c || ""), start: a.hm, end: jst(en).hm };
     let d = new Date(a.ymd + "T00:00:00Z"), last = new Date((b.ymd < a.ymd ? a.ymd : b.ymd) + "T00:00:00Z");
     for (let k = 0; d <= last && k < 45; k++, d = new Date(d.getTime() + 86400000)) {
       const key = d.toISOString().slice(0, 10);
@@ -87,8 +89,6 @@ function byDay(list) {
   Object.values(map).forEach(v => v.sort((x, y) => (y.all - x.all) || x.start.localeCompare(y.start)));
   return map;
 }
-const tint = hex => { const m = /^#?([0-9a-f]{6})$/i.exec(hex || ""); if (!m) return "rgba(143,212,255,.28)"; const n = parseInt(m[1], 16);
-  return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},.30)`; };   // カレンダーの色を、うすく透かした背景にする
 const evTime = e => e.hol ? "祝日" : e.all ? "終日" : (e.first ? `${e.start}〜${e.end}` : "つづき");
 
 function draw() {
@@ -102,14 +102,14 @@ function draw() {
     const all = map[key] || [], hols = all.filter(e => e.hol), list = all.filter(e => !e.hol), show = list.slice(0, hols.length ? 3 : 4), more = list.length - show.length;
     html += `<div class="day${d.getUTCMonth() !== m ? " out" : ""}${key === nowJ.ymd ? " today" : ""}${key === sel ? " sel" : ""}${hols.length ? " hol" : ""}${dow === 0 ? " sun" : dow === 6 ? " sat" : ""}" data-d="${key}">`
       + `<div class="n"><b>${d.getUTCDate()}</b></div>` + hols.map(e => `<div class="hn">${e.t}</div>`).join("")
-      + show.map(e => `<span class="ev" style="--c:${e.col || "#8fd4ff"};--bg:${tint(e.col)}">${e.t}</span>`).join("")
+      + show.map(e => `<span class="ev" style="--c:${e.col}">${e.t}</span>`).join("")
       + (more > 0 ? `<div class="more">ほか ${more} 件</div>` : "") + `</div>`;
   }
   document.getElementById("grid").innerHTML = html;
   document.querySelectorAll(".day").forEach(el => el.onclick = () => { sel = el.dataset.d; draw(); });
   const l = map[sel] || [];
   document.getElementById("list").innerHTML = `<h2>${+sel.slice(5, 7)}月${+sel.slice(8)}日(${"日月火水木金土"[new Date(sel + "T00:00:00Z").getUTCDay()]})</h2>`
-    + (l.length ? l.map(e => `<div class="li"><span class="dot" style="--c:${e.col || "#8fd4ff"}"></span><span class="t">${evTime(e)}</span><span>${e.t}</span><span class="c">${e.c}</span></div>`).join("") : `<div class="none">予定はありません</div>`);
+    + (l.length ? l.map(e => `<div class="li"><span class="dot" style="--c:${e.col}"></span><span class="t">${evTime(e)}</span><span>${e.t}</span><span class="c">${e.c}</span></div>`).join("") : `<div class="none">予定はありません</div>`);
 }
 
 async function load() {
