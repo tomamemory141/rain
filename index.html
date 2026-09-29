@@ -82,7 +82,7 @@ h1 { font-size: 16px; margin: 0 0 4px; font-weight: 700 }
   </div>
 
   <div class="card">
-    <div class="cap"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" style="vertical-align:-1px;margin-right:4px"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.5V8l2.5 1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>1時間ごとの天気予報</div>
+    <div class="cap"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" style="vertical-align:-1px;margin-right:4px"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.5V8l2.5 1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>1時間ごとの天気予報<span id="hhl" style="float:right;font-variant-numeric:tabular-nums"></span></div>
     <div class="hours" id="hours"></div>
   </div>
 
@@ -217,6 +217,7 @@ async function loadWeather(rainNow) {
   document.getElementById("temp").textContent = `${Math.round(c.temperature_2m)}°`;
   document.getElementById("hl").textContent = `最高 ${Math.round(w.daily.temperature_2m_max[0])}° 最低 ${Math.round(w.daily.temperature_2m_min[0])}°`;
   document.getElementById("cond").textContent = cond;
+  document.getElementById("hhl").innerHTML = `最高/最低 <b style="color:var(--fg);font-size:14px">${Math.round(w.daily.temperature_2m_max[0])}°/${Math.round(w.daily.temperature_2m_min[0])}°</b>`;
 
   // 下:現在 + 1時間ごと。日の出・日の入りが入る時間なら間に差し込む
   const H = w.hourly, items = [];
