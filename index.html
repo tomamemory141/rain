@@ -252,7 +252,7 @@ async function loadWeather(rainNow) {
   // 下:現在 + 1時間ごと。日の出・日の入りが入る時間なら間に差し込む
   const H = w.hourly, items = [];
   const pop = p => (p == null || p < 10) ? "" : `${Math.round(p / 10) * 10}%`;
-  const mmTxt = m => (m == null || m < 0.1) ? "" : `${m < 1 ? m.toFixed(1) : Math.round(m)}mm`;
+  const mmTxt = m => m == null ? "" : (m > 0 && m < 1) ? `${m.toFixed(1)}mm` : `${Math.round(m)}mm`;
   H.time.forEach((t, i) => {
     const e = wx(H.weather_code[i], H.is_day[i]);
     items.push({ t: i === 0 ? "現在" : `${+t.slice(11, 13)}時`, ic: i === 0 ? wx(c.weather_code, c.is_day).ic : e.ic,
@@ -266,7 +266,7 @@ async function loadWeather(rainNow) {
       items.splice(idx, 0, { t: `${+s.slice(11, 13)}:${s.slice(14, 16)}`, ic, p: "", v: name, key: s, small: true });
     });
   document.getElementById("hours").innerHTML = items.map(x =>
-    `<div class="h"><div class="t">${x.t}</div><div class="ic">${x.ic}</div><div class="p">${x.p}</div><div class="v"${x.small ? ' style="font-size:13px"' : ""}>${x.v}</div><div class="mm">${x.mm || ""}</div></div>`).join("");
+    `<div class="h"><div class="t">${x.t}</div><div class="ic">${x.ic}</div><div class="p">${x.p}</div><div class="mm">${x.mm || ""}</div><div class="v"${x.small ? ' style="font-size:13px"' : ""}>${x.v}</div></div>`).join("");
 
   // 7日間:曜日・天気・降水確率・雨量・最低・気温の幅の棒・最高
   // 天気と降水確率は気象庁の週間予報(東京地方)、雨量は Open-Meteo(田無)。気象庁が取れない時は Open-Meteo だけで出す
