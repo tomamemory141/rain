@@ -33,6 +33,7 @@ body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var
 .day.today { box-shadow: inset 0 0 0 1.5px var(--pop) }
 .ev { display: block; font-size: 12.5px; font-weight: 700; line-height: 17px; padding: 0 6px; margin-top: 2px; border-radius: 4px; color: #10202e; background: var(--c); border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .ev i { font-style: normal; opacity: .7; margin-right: 3px }
+.ev i { font-style: normal; font-weight: 600; opacity: .72; margin-right: 4px; font-variant-numeric: tabular-nums }
 .more { font-size: 11px; color: var(--sub); margin-top: 2px }
 .list { margin-top: 5px; padding: 7px 12px; border-radius: 16px; background: var(--card) }
 .list h2 { font-size: 14px; margin: 0 0 3px; font-weight: 700 }
@@ -102,7 +103,7 @@ function draw() {
     const all = map[key] || [], hols = all.filter(e => e.hol), list = all.filter(e => !e.hol), show = list.slice(0, hols.length ? 2 : 3), more = list.length - show.length;
     html += `<div class="day${d.getUTCMonth() !== m ? " out" : ""}${key === nowJ.ymd ? " today" : ""}${key === sel ? " sel" : ""}${hols.length ? " hol" : ""}${dow === 0 ? " sun" : dow === 6 ? " sat" : ""}" data-d="${key}">`
       + `<div class="n"><b>${d.getUTCDate()}</b></div>` + hols.map(e => `<div class="hn">${e.t}</div>`).join("")
-      + show.map(e => `<span class="ev" style="--c:${e.col}">${e.t}</span>`).join("")
+      + show.map(e => `<span class="ev" style="--c:${e.col}">${!e.all && e.first ? `<i>${+e.start.slice(0, 2)}:${e.start.slice(3)}</i>` : ""}${e.t}</span>`).join("")
       + (more > 0 ? `<div class="more">ほか ${more} 件</div>` : "") + `</div>`;
   }
   document.getElementById("grid").innerHTML = html;
