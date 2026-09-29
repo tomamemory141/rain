@@ -182,12 +182,12 @@ async function load() {
   const { y, m } = view;
   const from = mode === "month" ? new Date(Date.UTC(y, m, -7)) : jstDate(addDays(wk, -7));   // 前後も含めて余裕をもって取る
   const to = mode === "month" ? new Date(Date.UTC(y, m + 1, 14)) : jstDate(addDays(wk, 14));
-  try {
-    events = await fetchEvents(from, to);
-    upc = await fetchEvents(jstDate(nowJ.ymd), jstDate(addDays(nowJ.ymd, 32)));   // 上の一行用(今日から1か月ぶん)
-    document.getElementById("msg").textContent = "";
-  } catch (e) { document.getElementById("msg").textContent = "予定を取れませんでした。少し待って再読み込みしてください。"; }
-  draw();
+  const fail = () => { document.getElementById("msg").textContent = "予定を取れませんでした。少し待って再読み込みしてください。"; };
+  // 2つを同時に取り、届いたほうから先に表示する(片方ずつ待つと遅い)
+  await Promise.all([
+    fetchEvents(from, to).then(v => { events = v; document.getElementById("msg").textContent = ""; draw(); }).catch(fail),
+    fetchEvents(jstDate(nowJ.ymd), jstDate(addDays(nowJ.ymd, 32))).then(v => { upc = v; draw(); }).catch(() => {}),   // 上の一行用(今日から1か月ぶん)
+  ]);
 }
 const go = k => {
   if (mode === "month") view = { y: view.y + Math.floor((view.m + k) / 12), m: ((view.m + k) % 12 + 12) % 12 };
