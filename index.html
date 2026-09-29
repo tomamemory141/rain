@@ -45,11 +45,14 @@ h1 { font-size: 16px; margin: 0 0 4px; font-weight: 700 }
 .h .v { font-size: 17px }
 
 .days { display: grid; font-variant-numeric: tabular-nums }
-.d { display: grid; grid-template-columns: 3em 28px 3em 2.4em 1fr 2.4em; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line) }
+.d { display: grid; grid-template-columns: 2.4em 28px 2.8em 3.6em 2.2em 1fr 2.2em; align-items: center; gap: 7px; padding: 6px 0; border-top: 1px solid var(--line) }
 .d:first-child { border-top: 0 }
+.d.head { padding: 0 0 2px; font-size: 10px; color: var(--sub); border-top: 0 }
+.d.head + .d { border-top: 0 }
 .d .w { font-size: 15px; font-weight: 600 }
 .d .ic svg { display: block }
 .d .p { font-size: 11px; color: var(--pop); font-weight: 700 }
+.d .mm { font-size: 11px; color: var(--sub); text-align: right }
 .d .lo { font-size: 15px; color: var(--sub); text-align: right }
 .d .hi { font-size: 15px }
 .track { position: relative; height: 5px; border-radius: 3px; background: rgba(0,0,0,.25) }
@@ -87,11 +90,11 @@ h1 { font-size: 16px; margin: 0 0 4px; font-weight: 700 }
   </div>
 
   <div class="card">
-    <div class="cap"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" style="vertical-align:-1px;margin-right:4px"><rect x="1.75" y="3" width="12.5" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M1.75 6.5h12.5M5 1.5v3M11 1.5v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>7日間の天気予報</div>
+    <div class="cap"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" style="vertical-align:-1px;margin-right:4px"><rect x="1.75" y="3" width="12.5" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M1.75 6.5h12.5M5 1.5v3M11 1.5v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>7日間の天気予報<span style="float:right">天気・確率:気象庁(東京地方)</span></div>
     <div class="days" id="days"></div>
   </div>
 
-  <div class="foot"><span id="upd"></span> 出典:<a href="https://www.jma.go.jp/bosai/nowc/" target="_blank" rel="noopener">気象庁ナウキャスト</a>を加工 / <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a></div>
+  <div class="foot"><span id="upd"></span> 出典:<a href="https://www.jma.go.jp/bosai/nowc/" target="_blank" rel="noopener">気象庁ナウキャスト</a>・<a href="https://www.jma.go.jp/bosai/forecast/#area_type=offices&area_code=130000" target="_blank" rel="noopener">天気予報</a>を加工 / <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a></div>
 </div>
 <script>
 const LAT = 35.727, LON = 139.539, Z = 10;
@@ -187,6 +190,7 @@ const ICONS = {
   rain:   () => CLOUD(-5) + DROPS(3),
   heavy:  () => CLOUD(-6) + DROPS(5),
   snow:   () => CLOUD(-5) + `<g fill="#fff">${[[11,25],[16,28],[21,25]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.6"/>`).join("")}</g>`,
+  sunrain:() => SUN(21, 8, 3.8) + CLOUD(-4) + DROPS(2),
   thunder:() => CLOUD(-5) + `<path fill="${SUN_C}" d="M17 19l-4 7h3.5l-2 5 6-8h-3.5l2-4z"/>`,
   sunrise:() => `<clipPath id="hz"><rect width="32" height="22"/></clipPath><g clip-path="url(#hz)">${SUN(16, 22, 5)}</g><line x1="5" y1="22" x2="27" y2="22" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M16 31v-6m-3 3l3-3 3 3" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
   sunset: () => `<clipPath id="hz2"><rect width="32" height="22"/></clipPath><g clip-path="url(#hz2)">${SUN(16, 22, 5)}</g><line x1="5" y1="22" x2="27" y2="22" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M16 25v6m-3-3l3 3 3-3" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
@@ -203,11 +207,31 @@ function wx(code, day) {
   ].find(r => r[0].includes(code)) || [[], "cloudy", ""];
   return { ic: svg(t[1], day), txt: t[2] };
 }
+// 気象庁の天気コード(100番台=晴れ、200番台=曇り、300番台=雨、400番台=雪)→ アイコン
+function jmaIcon(code) {
+  const n = +code, has = list => list.includes(n);
+  const RAIN1 = [102,103,106,107,108,112,113,114,118,119,120,121,122,125,126,127,128,140,160,170,181];
+  const SNOW1 = [104,105,115,116,117], SNOW2 = [204,205,215,216,217,228,229,230,250];
+  if (n < 200) return has(SNOW1) ? "snow" : has(RAIN1) ? "sunrain" : has([101,110,111,132]) ? "partly" : "clear";
+  if (n < 300) {
+    if (n === 209) return "fog";
+    if (has([208,219,240])) return "thunder";
+    if (has(SNOW2)) return "snow";
+    if (has([202,212,220,221,222,206,260])) return "drizzle";        // 一時雨
+    if (has([203,207,213,214,218,224,225,226,270,281])) return "rain"; // 時々雨・後雨
+    if (has([201,210,211,223])) return "partly";
+    return "cloudy";
+  }
+  if (n < 400) return has([306,308,328]) ? "heavy" : n === 350 ? "thunder" : "rain";
+  return "snow";
+}
+const JMA_FC = "https://www.jma.go.jp/bosai/forecast/data/forecast/130000.json";   // 東京都
+
 const RAINY = new Set([51,53,55,56,57,61,63,65,66,67,71,73,75,77,80,81,82,85,86,95,96,99]);
 
 async function loadWeather(rainNow) {
   const q = "current=temperature_2m,weather_code,is_day&hourly=temperature_2m,precipitation_probability,weather_code,is_day"
-          + "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset&timezone=Asia%2FTokyo&forecast_days=7&forecast_hours=12";
+          + "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,sunrise,sunset&timezone=Asia%2FTokyo&forecast_days=7&forecast_hours=12";
   const w = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&${q}`, { cache: "no-store" }).then(r => r.json());
   const c = w.current;
 
@@ -236,20 +260,41 @@ async function loadWeather(rainNow) {
   document.getElementById("hours").innerHTML = items.map(x =>
     `<div class="h"><div class="t">${x.t}</div><div class="ic">${x.ic}</div><div class="p">${x.p}</div><div class="v"${x.small ? ' style="font-size:13px"' : ""}>${x.v}</div></div>`).join("");
 
-  // 7日間:曜日・天気・降水確率・最低・気温の幅の棒・最高
+  // 7日間:曜日・天気・降水確率・雨量・最低・気温の幅の棒・最高
+  // 天気と降水確率は気象庁の週間予報(東京地方)、雨量は Open-Meteo(田無)。気象庁が取れない時は Open-Meteo だけで出す
   const D = w.daily;
-  const lo = Math.min(...D.temperature_2m_min), hi = Math.max(...D.temperature_2m_max);
+  const days = D.time.map((t, i) => ({ t, ic: wx(D.weather_code[i], 1).ic, p: pop(D.precipitation_probability_max?.[i]),
+                                       mm: D.precipitation_sum?.[i], mn: D.temperature_2m_min[i], mx: D.temperature_2m_max[i] }));
+  try {
+    const j = await fetch(JMA_FC, { cache: "no-store" }).then(r => r.json());
+    const put = (date, code, p) => { const d = days.find(x => x.t === date); if (!d) return;
+      if (code) d.ic = svg(jmaIcon(code)); if (p !== undefined && p !== "") d.p = `${p}%`; };
+    // 今日:短期予報の天気と、今日の6時間ごとの降水確率のうち一番高いもの
+    const s0 = j[0].timeSeries[0], s1 = j[0].timeSeries[1];
+    const today = D.time[0];
+    const pToday = s1.timeDefines.map((d, k) => d.startsWith(today) ? +s1.areas[0].pops[k] : -1).filter(v => v >= 0);
+    s0.timeDefines.forEach((d, k) => { if (d.startsWith(today)) put(today, s0.areas[0].weatherCodes[k], pToday.length ? Math.max(...pToday) : undefined); });
+    // 明日以降:週間予報
+    const wk = j[1].timeSeries[0], wt = j[1].timeSeries[1];
+    wk.timeDefines.forEach((d, k) => put(d.slice(0, 10), wk.areas[0].weatherCodes[k], wk.areas[0].pops[k]));
+    wt.timeDefines.forEach((d, k) => { const x = days.find(y => y.t === d.slice(0, 10)); if (!x) return;
+      const a = wt.areas[0]; if (a.tempsMin[k] !== "") x.mn = +a.tempsMin[k]; if (a.tempsMax[k] !== "") x.mx = +a.tempsMax[k]; });
+  } catch (e) { /* 気象庁が取れなければ Open-Meteo のまま */ }
+
+  const lo = Math.min(...days.map(d => d.mn)), hi = Math.max(...days.map(d => d.mx));
   const pos = t => (hi === lo ? 50 : (t - lo) / (hi - lo) * 100);
   const col = t => t < 10 ? "#5ac8fa" : t < 17 ? "#6fd3b0" : t < 23 ? "#b5dc52" : t < 28 ? "#ffd23f" : "#ff9f0a";
-  document.getElementById("days").innerHTML = D.time.map((t, i) => {
-    const mn = D.temperature_2m_min[i], mx = D.temperature_2m_max[i];
-    const wd = i === 0 ? "今日" : "日月火水木金土"[new Date(t + "T00:00:00Z").getUTCDay()];   // 日付だけで曜日を出す(見る人の時差に左右されない)
-    const dot = i === 0 ? `<i class="dot" style="left:${pos(c.temperature_2m)}%"></i>` : "";
-    return `<div class="d"><div class="w">${wd}</div><div class="ic">${wx(D.weather_code[i], 1).ic}</div>`
-         + `<div class="p">${pop(D.precipitation_probability_max?.[i])}</div><div class="lo">${Math.round(mn)}°</div>`
-         + `<div class="track"><i class="seg" style="left:${pos(mn)}%;width:${pos(mx) - pos(mn)}%;background:linear-gradient(90deg,${col(mn)},${col(mx)})"></i>${dot}</div>`
-         + `<div class="hi">${Math.round(mx)}°</div></div>`;
-  }).join("");
+  const mm = v => v == null ? "" : v < 0.5 ? "0mm" : v < 10 ? `${v.toFixed(1)}mm` : `${Math.round(v)}mm`;
+  document.getElementById("days").innerHTML =
+    `<div class="d head"><div></div><div></div><div>確率</div><div style="text-align:right">雨量</div><div></div><div></div><div></div></div>` +
+    days.map((d, i) => {
+      const wd = i === 0 ? "今日" : "日月火水木金土"[new Date(d.t + "T00:00:00Z").getUTCDay()];   // 日付だけで曜日を出す(見る人の時差に左右されない)
+      const dot = i === 0 ? `<i class="dot" style="left:${pos(c.temperature_2m)}%"></i>` : "";
+      return `<div class="d"><div class="w">${wd}</div><div class="ic">${d.ic}</div>`
+           + `<div class="p">${d.p}</div><div class="mm">${mm(d.mm)}</div><div class="lo">${Math.round(d.mn)}°</div>`
+           + `<div class="track"><i class="seg" style="left:${pos(d.mn)}%;width:${pos(d.mx) - pos(d.mn)}%;background:linear-gradient(90deg,${col(d.mn)},${col(d.mx)})"></i>${dot}</div>`
+           + `<div class="hi">${Math.round(d.mx)}°</div></div>`;
+    }).join("");
 }
 
 async function load() {
