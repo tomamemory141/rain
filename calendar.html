@@ -59,6 +59,14 @@ const pad = n => String(n).padStart(2, "0");
 const fmt = new Intl.DateTimeFormat("sv-SE", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 const jst = d => { const s = fmt.format(d); return { ymd: s.slice(0, 10), hm: s.slice(11, 16) }; };   // 日本時間の「年-月-日」と「時:分」
 const ymdOf = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;       // m は 0〜11
+// 題名で色を決める(上から順に見て、最初に合ったものを使う)。ここを書き換えれば色を変えられる
+const RULES = [
+  [/^A残塩/, "#ffb454"],   // A残塩 = オレンジ
+  [/^B$/,    "#6fd89a"],   // B = 緑
+  [/^C$/,    "#c39bff"],   // C = 紫
+  [/宿直/,   "#ff7ab6"],   // 宿直 = ピンク
+];
+const colorOf = (title, fallback) => { const r = RULES.find(([re]) => re.test(title || "")); return r ? r[1] : fallback; };
 const nowJ = jst(new Date());
 let view = { y: +nowJ.ymd.slice(0, 4), m: +nowJ.ymd.slice(5, 7) - 1 };
 let sel = nowJ.ymd, events = [];
@@ -69,7 +77,7 @@ function byDay(list) {
   list.forEach(e => {
     const s = new Date(e.s), en = new Date(e.e);
     const a = jst(s), b = jst(new Date(en - 1));
-    const item = { t: e.t, all: e.a, c: e.c, col: e.col, hol: /祝日|holiday/i.test(e.c || ""), start: a.hm, end: jst(en).hm };
+    const item = { t: e.t, all: e.a, c: e.c, col: colorOf(e.t, e.col), hol: /祝日|holiday/i.test(e.c || ""), start: a.hm, end: jst(en).hm };
     let d = new Date(a.ymd + "T00:00:00Z"), last = new Date((b.ymd < a.ymd ? a.ymd : b.ymd) + "T00:00:00Z");
     for (let k = 0; d <= last && k < 45; k++, d = new Date(d.getTime() + 86400000)) {
       const key = d.toISOString().slice(0, 10);
