@@ -15,8 +15,8 @@
 }
 * { box-sizing: border-box }
 html, body { margin: 0 }
-body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var(--fg); font-family: var(--font); padding: 12px 16px; min-height: 100vh }
-.wrap { max-width: 560px; display: grid; gap: 10px }
+body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var(--fg); font-family: var(--font); padding: 6px 12px; min-height: 100vh }
+.wrap { max-width: 560px; display: grid; gap: 6px }
 
 .now { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; padding: 0 4px }
 .now .place { font-size: 15px; font-weight: 600 }
@@ -24,25 +24,25 @@ body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var
 .now .hl, .now .cond { font-size: 13px; color: var(--sub) }
 
 .umb { font-size: 13px; font-weight: 700; color: var(--pop) }
-.card { background: var(--card); border-radius: 16px; padding: 12px 16px 10px; backdrop-filter: blur(12px); min-width: 0 }
-.title { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 0 0 12px }
+.card { background: var(--card); border-radius: 16px; padding: 8px 14px 6px; backdrop-filter: blur(12px); min-width: 0 }
+.title { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 0 0 6px }
 h1 { font-size: 16px; margin: 0; font-weight: 700 }
 .msg { font-size: 13px; margin: 0 }
 .msg.sum { font-weight: 700; color: var(--pop) }
-.plot { position: relative; height: 120px; margin-right: 7.5em; border-bottom: 1px solid rgba(255,255,255,.45) }
+.plot { position: relative; height: 84px; margin-right: 7.5em; border-bottom: 1px solid rgba(255,255,255,.45) }
 .dots { position: absolute; left: 0; right: -7.5em; border-top: 1.5px dashed rgba(255,255,255,.35) }
 .dots span { position: absolute; right: 0; top: -7px; font-size: 11px; line-height: 13px; color: rgba(255,255,255,.9); white-space: nowrap }
 .dots span b { display: inline-block; width: 3.2em; text-align: right; margin-right: 4px; font-weight: 700 }
 .bars { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 2px }
 .bars i { flex: 1; background: var(--bar); border-radius: 2px 2px 0 0; min-width: 1px }
-.axis { position: relative; height: 18px; margin-top: 4px; margin-right: 7.5em; font-size: 12px; color: var(--sub); font-variant-numeric: tabular-nums }
+.axis { position: relative; height: 15px; margin-top: 2px; margin-right: 7.5em; font-size: 12px; color: var(--sub); font-variant-numeric: tabular-nums }
 .axis span { position: absolute; transform: translateX(-50%); white-space: nowrap }
 .axis span:first-child { transform: none }
 
-.cap { font-size: 12px; color: var(--sub); padding-bottom: 8px; border-bottom: 1px solid var(--line); margin-bottom: 8px }
+.cap { font-size: 12px; color: var(--sub); padding-bottom: 5px; border-bottom: 1px solid var(--line); margin-bottom: 5px }
 .hours { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none }
 .hours::-webkit-scrollbar { display: none }
-.h { flex: 0 0 52px; display: grid; justify-items: center; gap: 4px; font-variant-numeric: tabular-nums }
+.h { flex: 0 0 52px; display: grid; justify-items: center; gap: 2px; font-variant-numeric: tabular-nums }
 .h .t { font-size: 13px; font-weight: 600 }
 .h .ic { height: 28px }
 .h .ic svg { display: block }
@@ -51,7 +51,7 @@ h1 { font-size: 16px; margin: 0; font-weight: 700 }
 .h .mm { font-size: 11px; color: var(--pop); font-weight: 700; min-height: 13px }
 
 .days { display: grid; font-variant-numeric: tabular-nums }
-.d { display: grid; grid-template-columns: 2.4em 28px 2.8em 7.6em 2.2em minmax(40px,1fr) 2.2em; align-items: center; gap: 7px; padding: 6px 0; border-top: 1px solid var(--line) }
+.d { display: grid; grid-template-columns: 2.4em 28px 2.8em 7.6em 2.2em minmax(40px,1fr) 2.2em; align-items: center; gap: 7px; padding: 4px 0; border-top: 1px solid var(--line) }
 .d:first-child { border-top: 0 }
 .d.head { padding: 0 0 2px; font-size: 16px; color: var(--sub); border-top: 0 }
 .d.head > div { font-size: 10px }
@@ -59,8 +59,8 @@ h1 { font-size: 16px; margin: 0; font-weight: 700 }
 .d .w { font-size: 15px; font-weight: 600 }
 .d .ic svg { display: block }
 .d .p { font-size: 11px; color: var(--pop); font-weight: 700 }
-.d .mm { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--sub); align-self: stretch; margin: -6px 0 }
-.d .mm .g { flex: 1; position: relative; align-self: stretch; margin: 5px 0; border-bottom: 1px solid rgba(255,255,255,.35) }
+.d .mm { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--sub); align-self: stretch; margin: -4px 0 }
+.d .mm .g { flex: 1; position: relative; align-self: stretch; margin: 4px 0; border-bottom: 1px solid rgba(255,255,255,.35) }
 .d .mm .g svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible }
 .d .mm .g svg polyline { fill: none; stroke: var(--bar); stroke-width: 1.6; vector-effect: non-scaling-stroke; stroke-linejoin: round }
 .d .mm .g svg .gl { stroke: rgba(255,255,255,.22); stroke-width: 1; stroke-dasharray: 2 2; vector-effect: non-scaling-stroke }
