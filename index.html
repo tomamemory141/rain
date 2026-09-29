@@ -5,65 +5,61 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>雨の予報</title>
 <style>
-/* 1枚のカード:見出し → 5分ごとの棒グラフ → 表 */
+/* iPhone天気アプリ風:暗い空の上に半透明のカード1枚。見出し → 一言 → 1分ごとの細い棒 */
 :root {
-  --bg: #eef3f8; --card: #ffffff; --fg: #1b2733; --muted: #6b7a89;
-  --line: #d9e2ec; --now: #1b2733;
-  --font: "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
-}
-@media (prefers-color-scheme: dark) {
-  :root { --bg: #111922; --card: #1a2531; --fg: #e8eef5; --muted: #93a3b3; --line: #2c3a48; --now: #e8eef5; color-scheme: dark }
+  --sky1: #3a4a5e; --sky2: #26313f;
+  --card: rgba(255,255,255,.10); --line: rgba(255,255,255,.28);
+  --fg: #ffffff; --sub: rgba(255,255,255,.72); --bar: #8fd4ff;
+  --font: -apple-system, "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+  color-scheme: dark;
 }
 * { box-sizing: border-box }
-body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font); padding: 16px }
-.card { background: var(--card); border-radius: 14px; padding: 16px 16px 12px; max-width: 640px }
-.head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap }
-h1 { font-size: 14px; margin: 0; color: var(--muted); font-weight: 600; letter-spacing: .04em }
-.upd { font-size: 12px; color: var(--muted) }
-.msg { font-size: 20px; font-weight: 700; margin: 6px 0 14px }
-.chart { position: relative; height: 120px; display: flex; align-items: flex-end; gap: 3px; border-bottom: 1px solid var(--line) }
-.grid { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--line); font-size: 10px; color: var(--muted) }
-.grid span { position: absolute; right: 0; top: -13px }
-.bar { flex: 1; border-radius: 3px 3px 0 0; min-height: 2px; background: var(--line); position: relative; z-index: 1 }
-.bar.past { opacity: .45 }
-.nowline { position: absolute; top: 0; bottom: 0; border-left: 2px solid var(--now); z-index: 2 }
-.nowline b { position: absolute; top: -2px; left: 4px; font-size: 10px }
-.axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 4px; font-variant-numeric: tabular-nums }
-table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 13px; font-variant-numeric: tabular-nums }
-th, td { text-align: left; padding: 5px 4px; border-bottom: 1px solid var(--line) }
-th { color: var(--muted); font-weight: 600; font-size: 12px }
-.chip { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 6px; border: 1px solid var(--line) }
-.src { font-size: 11px; color: var(--muted); margin-top: 10px }
-.src a { color: inherit }
+html, body { margin: 0 }
+body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var(--fg); font-family: var(--font); padding: 12px 16px; min-height: 100vh }
+.card { background: var(--card); border-radius: 16px; padding: 14px 16px 10px; max-width: 560px; backdrop-filter: blur(12px) }
+h1 { font-size: 17px; margin: 0 0 4px; font-weight: 700 }
+.msg { font-size: 14px; margin: 0 0 12px; color: var(--fg) }
+.plot { position: relative; height: 64px }
+.dots { position: absolute; left: 0; right: 0; border-top: 1.5px dotted var(--line) }
+.bars { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 2px }
+.bars i { flex: 1; background: var(--bar); border-radius: 2px 2px 0 0; min-width: 1px }
+.axis { position: relative; height: 18px; margin-top: 4px; font-size: 12px; color: var(--sub); font-variant-numeric: tabular-nums }
+.axis span { position: absolute; transform: translateX(-50%); white-space: nowrap }
+.axis span:first-child { transform: none }
+.foot { font-size: 10px; color: var(--sub); margin-top: 6px; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap }
+.foot a { color: inherit }
 </style>
 </head>
 <body>
 <div class="card">
-  <div class="head"><h1>雨の予報(5分ごと)</h1><span class="upd" id="upd">読み込み中…</span></div>
-  <div class="msg" id="msg">データを取ってきています…</div>
-  <div class="chart" id="chart"></div>
+  <h1 id="ttl">雨の予想です</h1>
+  <p class="msg" id="msg">データを取ってきています…</p>
+  <div class="plot" id="plot">
+    <div class="dots" style="top:0"></div>
+    <div class="dots" style="top:33.3%"></div>
+    <div class="dots" style="top:66.6%"></div>
+    <div class="bars" id="bars"></div>
+  </div>
   <div class="axis" id="axis"></div>
-  <table><thead><tr><th>時刻</th><th>雨の強さ</th><th>1時間あたり</th></tr></thead><tbody id="tbl"></tbody></table>
-  <div class="src">出典:<a href="https://www.jma.go.jp/bosai/nowc/" target="_blank" rel="noopener">気象庁 高解像度降水ナウキャスト</a>を加工して作成</div>
+  <div class="foot"><span id="upd"></span><span>出典:<a href="https://www.jma.go.jp/bosai/nowc/" target="_blank" rel="noopener">気象庁ナウキャスト</a>を加工</span></div>
 </div>
 <script>
 const LAT = 35.727, LON = 139.539, Z = 10;
 const BASE = "https://www.jma.go.jp/bosai/jmatile/data/nowc/";
-// 気象庁の凡例の色 → 強さ
+// 気象庁の凡例の色(弱い順)。h = 棒の高さ(%)。点線は 33% / 66% / 100%
 const LEVELS = [
-  { rgb: null,          name: "なし",       mm: "0",       h: 0 },
-  { rgb: [242,242,255], name: "ぱらぱら",   mm: "1mm未満", h: 1 },
-  { rgb: [160,210,255], name: "弱い雨",     mm: "1〜5mm",  h: 2 },
-  { rgb: [33,140,255],  name: "やや強い",   mm: "5〜10mm", h: 3 },
-  { rgb: [0,65,255],    name: "強い雨",     mm: "10〜20mm",h: 4 },
-  { rgb: [250,245,0],   name: "激しい雨",   mm: "20〜30mm",h: 5 },
-  { rgb: [255,153,0],   name: "非常に激しい",mm: "30〜50mm",h: 6 },
-  { rgb: [255,40,0],    name: "猛烈な雨",   mm: "50〜80mm",h: 7 },
-  { rgb: [180,0,104],   name: "猛烈な雨",   mm: "80mm以上",h: 8 },
+  { rgb: null,          h: 0 },
+  { rgb: [242,242,255], h: 12 },  // 1mm未満
+  { rgb: [160,210,255], h: 28 },  // 1〜5mm
+  { rgb: [33,140,255],  h: 45 },  // 5〜10mm
+  { rgb: [0,65,255],    h: 62 },  // 10〜20mm
+  { rgb: [250,245,0],   h: 75 },  // 20〜30mm
+  { rgb: [255,153,0],   h: 86 },  // 30〜50mm
+  { rgb: [255,40,0],    h: 95 },  // 50〜80mm
+  { rgb: [180,0,104],   h: 100 }, // 80mm以上
 ];
-const css = l => l.rgb ? `rgb(${l.rgb})` : "transparent";
 
-// 地図タイルのどの位置が田無か
+// 地図タイルのどの位置か
 const n = 2 ** Z;
 const xf = (LON + 180) / 360 * n;
 const lr = LAT * Math.PI / 180;
@@ -78,8 +74,7 @@ function levelOf(r, g, b, a) {
   return best;
 }
 async function sample(basetime, validtime) {
-  const url = `${BASE}${basetime}/none/${validtime}/surf/hrpns/${Z}/${TX}/${TY}.png`;
-  const r = await fetch(url);
+  const r = await fetch(`${BASE}${basetime}/none/${validtime}/surf/hrpns/${Z}/${TX}/${TY}.png`);
   if (r.status === 404) return 0;           // 雨がない所は画像自体がない
   if (!r.ok) throw new Error(r.status);
   const bm = await createImageBitmap(await r.blob());
@@ -98,57 +93,34 @@ const hm = d => d.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digi
 async function load() {
   try {
     const [n1, n2] = await Promise.all(["targetTimes_N1.json", "targetTimes_N2.json"].map(f => fetch(BASE + f, { cache: "no-store" }).then(r => r.json())));
-    const past = n1.slice(0, 7).reverse();                     // 直近30分+今
     const latest = n1[0].basetime;
     const fut = n2.filter(t => t.basetime === latest).sort((a, b) => a.validtime.localeCompare(b.validtime));
-    const pts = [...past.map(t => ({ ...t, past: true })), ...fut.map(t => ({ ...t, past: false }))];
+    const pts = [n1[0], ...fut];                               // 現在 + 5分ごと1時間先まで
     const lvs = await Promise.all(pts.map(p => sample(p.basetime, p.validtime)));
-    pts.forEach((p, i) => { p.lv = lvs[i]; p.d = toDate(p.validtime); });
-    draw(pts, toDate(latest));
+    draw(lvs, toDate(latest));
   } catch (e) {
     document.getElementById("msg").textContent = "データを取れませんでした。少し待って再読み込みしてください。";
-    document.getElementById("upd").textContent = "";
   }
 }
 
-function draw(pts, now) {
-  const chart = document.getElementById("chart");
-  chart.innerHTML = "";
-  [2, 4, 6].forEach(h => { const g = document.createElement("div"); g.className = "grid"; g.style.bottom = (h / 8 * 100) + "%"; g.innerHTML = `<span>${LEVELS[h].name}</span>`; chart.appendChild(g); });
-  pts.forEach(p => {
-    const b = document.createElement("div");
-    b.className = "bar" + (p.past ? " past" : "");
-    b.style.height = (p.lv / 8 * 100) + "%";
-    if (p.lv) b.style.background = css(LEVELS[p.lv]);
-    b.title = `${hm(p.d)} ${LEVELS[p.lv].name}`;
-    chart.appendChild(b);
-  });
-  const ni = pts.findIndex(p => !p.past) - 1;
-  const nl = document.createElement("div"); nl.className = "nowline";
-  nl.style.left = `calc(${(ni + 0.5) / pts.length * 100}% )`; nl.innerHTML = "<b>今</b>";
-  chart.appendChild(nl);
+function draw(lvs, now) {
+  // 1分ごとの細い棒60本。値は5分ごとのデータをそのまま5本ずつ並べる(間を作り足さない)
+  const mins = Array.from({ length: 60 }, (_, m) => lvs[Math.min(Math.floor(m / 5), lvs.length - 1)]);
+  document.getElementById("bars").innerHTML = mins.map(lv => `<i style="height:${LEVELS[lv].h}%"></i>`).join("");
+  document.getElementById("axis").innerHTML = ["現在", "10分", "20分", "30分", "40分", "50分"].map((t, i) => `<span style="left:${i * 10 / 60 * 100}%">${t}</span>`).join("");
 
-  document.getElementById("axis").innerHTML = [0, Math.floor(pts.length / 2), pts.length - 1].map(i => `<span>${hm(pts[i].d)}</span>`).join("");
-  document.getElementById("upd").textContent = `${hm(now)} 時点`;
-
-  // ひとこと
-  const fut = pts.filter(p => !p.past);
-  const nowLv = pts[ni].lv;
-  let msg;
-  if (nowLv) {
-    const stop = fut.find(p => !p.lv);
-    msg = stop ? `今は${LEVELS[nowLv].name}。${hm(stop.d)}ごろ止みそう` : `今は${LEVELS[nowLv].name}。1時間は降り続きそう`;
+  const at = i => i * 5;                                        // i番目のデータ = 現在から何分後
+  const ttl = document.getElementById("ttl"), msg = document.getElementById("msg");
+  if (lvs[0]) {
+    const stop = lvs.findIndex(l => !l);
+    ttl.textContent = "雨が降っています";
+    msg.textContent = stop > 0 ? `雨は${at(stop)}分後に止むことが予想されます。` : "今後1時間は雨が続くことが予想されます。";
   } else {
-    const start = fut.find(p => p.lv);
-    msg = start ? `${hm(start.d)}ごろから${LEVELS[start.lv].name}` : "この先1時間、雨の予報はありません";
+    const start = lvs.findIndex(l => l);
+    ttl.textContent = start > 0 ? "雨の予想です" : "1時間以内の雨";
+    msg.textContent = start > 0 ? `雨は${at(start)}分後に降り始めることが予想されます。` : "今後1時間は雨は予想されていません。";
   }
-  document.getElementById("msg").textContent = msg;
-
-  // 表(今から10分ごと)
-  document.getElementById("tbl").innerHTML = pts.slice(ni).filter((_, i) => i % 2 === 0).map(p => {
-    const l = LEVELS[p.lv];
-    return `<tr><td>${hm(p.d)}</td><td><span class="chip" style="background:${css(l)}"></span>${l.name}</td><td>${l.mm}</td></tr>`;
-  }).join("");
+  document.getElementById("upd").textContent = `${hm(now)} 時点のデータ`;
 }
 load();
 setInterval(load, 5 * 60 * 1000);
