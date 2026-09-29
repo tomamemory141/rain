@@ -49,7 +49,7 @@ h1 { font-size: 16px; margin: 0; font-weight: 700 }
 .h .mm { font-size: 11px; color: var(--pop); font-weight: 700; min-height: 13px }
 
 .days { display: grid; font-variant-numeric: tabular-nums }
-.d { display: grid; grid-template-columns: 2.4em 28px 2.8em 7.4em 2.2em 1fr 2.2em; align-items: center; gap: 7px; padding: 6px 0; border-top: 1px solid var(--line) }
+.d { display: grid; grid-template-columns: 2.4em 28px 2.8em 7.6em 2.2em minmax(40px,1fr) 2.2em; align-items: center; gap: 7px; padding: 6px 0; border-top: 1px solid var(--line) }
 .d:first-child { border-top: 0 }
 .d.head { padding: 0 0 2px; font-size: 10px; color: var(--sub); border-top: 0 }
 .d.head + .d { border-top: 0 }
@@ -57,10 +57,10 @@ h1 { font-size: 16px; margin: 0; font-weight: 700 }
 .d .ic svg { display: block }
 .d .p { font-size: 11px; color: var(--pop); font-weight: 700 }
 .d .mm { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--sub); align-self: stretch; margin: -6px 0 }
-.d .mm .g { flex: 1; position: relative; align-self: stretch; margin: 0 4px 0 2px }
-.d .mm .g svg { position: absolute; inset: 0; width: 100%; height: 100% }
-.d .mm .g svg polyline { fill: none; stroke: var(--bar); stroke-width: 2; vector-effect: non-scaling-stroke; stroke-linejoin: round }
-.d .mm .g u { position: absolute; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; top: 50%; border-radius: 50%; background: var(--bar); box-shadow: 0 0 0 1.5px rgba(0,0,0,.3) }
+.d .mm .g { flex: 1; position: relative; align-self: stretch; margin: 5px 0; border-bottom: 1px solid rgba(255,255,255,.35) }
+.d .mm .g svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible }
+.d .mm .g svg polyline { fill: none; stroke: var(--bar); stroke-width: 1.6; vector-effect: non-scaling-stroke; stroke-linejoin: round }
+.d .mm .g svg polygon { fill: var(--bar); opacity: .28; stroke: none }
 .d .mm span { width: 3.4em; text-align: right }
 .d .lo { font-size: 15px; color: var(--sub); text-align: right }
 .d .hi { font-size: 15px }
@@ -243,7 +243,7 @@ const RAINY = new Set([51,53,55,56,57,61,63,65,66,67,71,73,75,77,80,81,82,85,86,
 
 async function loadWeather(rainNow) {
   const q = "current=temperature_2m,weather_code,is_day&hourly=temperature_2m,precipitation_probability,precipitation,weather_code,is_day"
-          + "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,sunrise,sunset&timezone=Asia%2FTokyo&forecast_days=7&forecast_hours=12";
+          + "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,sunrise,sunset&timezone=Asia%2FTokyo&forecast_days=7";
   const w = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&${q}`, { cache: "no-store" }).then(r => r.json());
   const c = w.current;
 
@@ -255,7 +255,9 @@ async function loadWeather(rainNow) {
   document.getElementById("cond").textContent = cond;
 
   // 下:現在 + 1時間ごと。日の出・日の入りが入る時間なら間に差し込む
-  const H = w.hourly, items = [];
+  const HF = w.hourly, items = [];
+  const st = Math.max(0, HF.time.findIndex(t => t.slice(0, 13) >= c.time.slice(0, 13)));   // 今の時間から12時間分
+  const H = Object.fromEntries(Object.keys(HF).map(k => [k, HF[k].slice(st, st + 12)]));
   const pop = p => (p == null || p < 10) ? "" : `${Math.round(p / 10) * 10}%`;
   const mmTxt = m => m == null ? "" : (m > 0 && m < 1) ? `${m.toFixed(1)}mm` : `${Math.round(m)}mm`;
   H.time.forEach((t, i) => {
@@ -301,11 +303,13 @@ async function loadWeather(rainNow) {
   const pos = t => (hi === lo ? 50 : (t - lo) / (hi - lo) * 100);
   const col = t => t < 10 ? "#5ac8fa" : t < 17 ? "#6fd3b0" : t < 23 ? "#b5dc52" : t < 28 ? "#ffd23f" : "#ff9f0a";
   const mmMax = Math.max(10, ...days.map(d => d.mm || 0));   // 棒の長さの基準:その週で一番多い日(最低でも10mm)
-  // 雨量の折れ線:1行に1点(左端=0mm、右端=基準の量)。前後の行の点とつないで、縦に一本の線になる
-  const xs = days.map(d => d.mm >= 0.5 ? Math.min(100, d.mm / mmMax * 96 + 2) : 2);
+  // 雨量の折れ線:1日ごとに、横=0時〜24時、縦=1時間あたりの雨量(どの日も同じ縦の目盛り)
+  const yMax = Math.max(5, ...HF.precipitation.map(v => v || 0));
   const lineOf = i => {
-    const x = xs[i], a = i > 0 ? (xs[i - 1] + x) / 2 : x, b = i < xs.length - 1 ? (xs[i + 1] + x) / 2 : x;
-    return `<svg viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="${a},0 ${x},50 ${b},100"/></svg><u style="left:${x}%"></u>`;
+    const v = HF.time.map((t, k) => t.startsWith(days[i].t) ? HF.precipitation[k] || 0 : null).filter(x => x !== null);
+    if (v.length < 2) return "";
+    const pts = v.map((m, h) => `${h / (v.length - 1) * 100},${100 - Math.min(m / yMax, 1) * 100}`).join(" ");
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="0,100 ${pts} 100,100"/><polyline points="${pts}"/></svg>`;
   };
   const mm = v => v == null ? "" : v < 0.5 ? "0mm" : v < 10 ? `${v.toFixed(1)}mm` : `${Math.round(v)}mm`;
   document.getElementById("days").innerHTML =
