@@ -16,7 +16,7 @@ body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var
 .bar h1 { font-size: 20px; margin: 0; font-weight: 700; flex: 1 }
 .bar button { background: rgba(255,255,255,.10); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 4px 12px; font: inherit; font-size: 15px; cursor: pointer }
 .bar button:hover { background: rgba(255,255,255,.22) }
-.grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line) }
+.grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line); background: #4a5869 }   /* マスの中の色(天気予報の雨グラフと同じ) */
 .dow { font-size: 13px; font-weight: 700; color: var(--sub); text-align: center; padding: 5px 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line) }
 .dow.sun, .day.sun .n { color: #ff9a8f }
 .dow.sat, .day.sat .n { color: var(--pop) }
