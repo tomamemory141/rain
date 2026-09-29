@@ -11,32 +11,32 @@
 * { box-sizing: border-box }
 html, body { margin: 0 }
 body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var(--fg); font-family: var(--font); padding: 6px 12px; min-height: 100vh }
-.card { background: var(--card); border-radius: 16px; padding: 10px 14px 12px; backdrop-filter: blur(12px) }
+.card { background: var(--card); border-radius: 16px; padding: 8px 12px 10px; backdrop-filter: blur(12px) }
 .bar { display: flex; align-items: center; gap: 8px; margin-bottom: 6px }
-.bar h1 { font-size: 20px; margin: 0; font-weight: 700; flex: 1 }
+.bar h1 { font-size: 18px; margin: 0; font-weight: 700; flex: 1 }
 .bar button { background: rgba(255,255,255,.10); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 4px 12px; font: inherit; font-size: 15px; cursor: pointer }
 .bar button:hover { background: rgba(255,255,255,.22) }
 .grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line); background: #4a5869 }   /* マスの中の色(天気予報の雨グラフと同じ) */
-.dow { font-size: 13px; font-weight: 700; color: var(--sub); text-align: center; padding: 5px 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line) }
+.dow { font-size: 12px; font-weight: 700; color: var(--sub); text-align: center; padding: 3px 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line) }
 .dow.sun, .day.sun .n { color: #ff9a8f }
 .dow.sat, .day.sat .n { color: var(--pop) }
-.day { min-height: 112px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 3px 4px; overflow: hidden; cursor: pointer }
+.day { min-height: 84px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 2px 4px 3px; overflow: hidden; cursor: pointer }
 .day.out { opacity: .42 }
 .day.sel { background: rgba(255,255,255,.14) }
 .day:hover { background: rgba(255,255,255,.07) }
-.n { font-size: 14px; text-align: right; font-variant-numeric: tabular-nums; height: 24px }
-.n b { display: inline-block; min-width: 24px; height: 24px; line-height: 24px; border-radius: 12px; text-align: center; font-weight: 700 }
+.n { font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; height: 20px }
+.n b { display: inline-block; min-width: 20px; height: 20px; line-height: 20px; border-radius: 10px; text-align: center; font-weight: 700 }
 .day.hol { background: rgba(255,140,130,.12) }
 .day.hol .n b { color: #ff8f85 }
-.hn { font-size: 12px; font-weight: 700; color: #ff9d94; line-height: 16px; margin: -2px 0 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.hn { font-size: 11.5px; font-weight: 700; color: #ff9d94; line-height: 14px; margin: -2px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .day.today .n b { background: var(--pop); color: #16202b }
 .day.today { box-shadow: inset 0 0 0 1.5px var(--pop) }
-.ev { display: block; font-size: 13px; font-weight: 700; line-height: 20px; padding: 0 6px; margin-top: 3px; border-radius: 4px; color: #10202e; background: var(--c); border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.ev { display: block; font-size: 12.5px; font-weight: 700; line-height: 17px; padding: 0 6px; margin-top: 2px; border-radius: 4px; color: #10202e; background: var(--c); border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .ev i { font-style: normal; opacity: .7; margin-right: 3px }
-.more { font-size: 12px; color: var(--sub); margin-top: 3px }
-.list { margin-top: 6px; padding: 10px 14px; border-radius: 16px; background: var(--card) }
-.list h2 { font-size: 16px; margin: 0 0 6px; font-weight: 700 }
-.li { display: flex; gap: 10px; align-items: baseline; font-size: 15px; padding: 3px 0 }
+.more { font-size: 11px; color: var(--sub); margin-top: 2px }
+.list { margin-top: 5px; padding: 7px 12px; border-radius: 16px; background: var(--card) }
+.list h2 { font-size: 14px; margin: 0 0 3px; font-weight: 700 }
+.li { display: flex; gap: 10px; align-items: baseline; font-size: 14px; padding: 2px 0 }
 .li .t { width: 7.2em; color: var(--sub); font-size: 13px; font-variant-numeric: tabular-nums; flex: none }
 .li .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; align-self: center }
 .li .c { color: var(--sub); font-size: 12px; margin-left: auto; white-space: nowrap }
@@ -99,7 +99,7 @@ function draw() {
   let html = "日月火水木金土".split("").map((w, i) => `<div class="dow${i === 0 ? " sun" : i === 6 ? " sat" : ""}">${w}</div>`).join("");
   for (let i = 0; i < weeks * 7; i++) {
     const d = new Date(Date.UTC(y, m, 1 - lead + i)), key = d.toISOString().slice(0, 10), dow = d.getUTCDay();
-    const all = map[key] || [], hols = all.filter(e => e.hol), list = all.filter(e => !e.hol), show = list.slice(0, hols.length ? 3 : 4), more = list.length - show.length;
+    const all = map[key] || [], hols = all.filter(e => e.hol), list = all.filter(e => !e.hol), show = list.slice(0, hols.length ? 2 : 3), more = list.length - show.length;
     html += `<div class="day${d.getUTCMonth() !== m ? " out" : ""}${key === nowJ.ymd ? " today" : ""}${key === sel ? " sel" : ""}${hols.length ? " hol" : ""}${dow === 0 ? " sun" : dow === 6 ? " sat" : ""}" data-d="${key}">`
       + `<div class="n"><b>${d.getUTCDate()}</b></div>` + hols.map(e => `<div class="hn">${e.t}</div>`).join("")
       + show.map(e => `<span class="ev" style="--c:${e.col}">${e.t}</span>`).join("")
