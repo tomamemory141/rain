@@ -24,8 +24,9 @@ body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var
 .now .hl, .now .cond { font-size: 13px; color: var(--sub) }
 
 .card { background: var(--card); border-radius: 16px; padding: 12px 16px 10px; backdrop-filter: blur(12px); min-width: 0 }
-h1 { font-size: 16px; margin: 0 0 4px; font-weight: 700 }
-.msg { font-size: 13px; margin: 0 0 12px }
+.title { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 0 0 12px }
+h1 { font-size: 16px; margin: 0; font-weight: 700 }
+.msg { font-size: 13px; margin: 0 }
 .plot { position: relative; height: 120px; margin-right: 7.5em; border-bottom: 1px solid rgba(255,255,255,.45) }
 .dots { position: absolute; left: 0; right: -7.5em; border-top: 1.5px dashed rgba(255,255,255,.35) }
 .dots span { position: absolute; right: 0; top: -7px; font-size: 11px; line-height: 13px; color: rgba(255,255,255,.9); white-space: nowrap }
@@ -75,8 +76,7 @@ h1 { font-size: 16px; margin: 0 0 4px; font-weight: 700 }
   </div>
 
   <div class="card">
-    <h1 id="ttl">雨の予想です</h1>
-    <p class="msg" id="msg">データを取ってきています…</p>
+    <div class="title"><h1 id="ttl">雨の予想です</h1><p class="msg" id="msg">データを取ってきています…</p></div>
     <div class="plot">
       <!-- 目盛り(1時間あたりの雨量)。言葉は気象庁「雨の強さと降り方」より -->
       <div class="dots" style="top:0"><span><b>50mm</b>滝のよう</span></div>
