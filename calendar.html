@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>カレンダー</title>
+<style>
+/* Googleカレンダーの予定を月表示で出す。予定の窓口(Apps Script)のアドレスと合言葉は、ページの中に書かず ?g=…&k=… で渡す */
+:root { --sky1: #3a4a5e; --sky2: #26313f; --fg: #fff; --sub: rgba(255,255,255,.72); --line: rgba(255,255,255,.18);
+  --font: -apple-system, "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif; color-scheme: dark }
+* { box-sizing: border-box }
+html, body { margin: 0 }
+body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var(--fg); font-family: var(--font); padding: 8px 10px; min-height: 100vh }
+.bar { display: flex; align-items: center; gap: 8px; margin-bottom: 6px }
+.bar h1 { font-size: 17px; margin: 0; font-weight: 700; flex: 1 }
+.bar button { background: rgba(255,255,255,.12); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 3px 10px; font: inherit; font-size: 13px; cursor: pointer }
+.bar button:hover { background: rgba(255,255,255,.22) }
+.grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line) }
+.dow { font-size: 11px; color: var(--sub); text-align: center; padding: 3px 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line) }
+.dow.sun, .day.sun .n { color: #ff9a8f }
+.dow.sat, .day.sat .n { color: #8fd4ff }
+.day { min-height: 74px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 2px 3px; overflow: hidden; cursor: pointer }
+.day.out { opacity: .42 }
+.day.sel { background: rgba(255,255,255,.10) }
+.day:hover { background: rgba(255,255,255,.07) }
+.n { font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; height: 18px }
+.n b { display: inline-block; min-width: 18px; height: 18px; line-height: 18px; border-radius: 9px; text-align: center; font-weight: 700 }
+.day.today .n b { background: #2f9bff; color: #fff }
+.ev { display: block; font-size: 11px; line-height: 15px; padding: 0 4px; margin-top: 2px; border-radius: 3px; color: #16202b; background: var(--c, #9fe1e7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.ev i { font-style: normal; opacity: .7; margin-right: 3px }
+.more { font-size: 10px; color: var(--sub); margin-top: 2px }
+.list { margin-top: 8px; padding: 8px 10px; border-radius: 12px; background: rgba(255,255,255,.08) }
+.list h2 { font-size: 13px; margin: 0 0 4px; font-weight: 700 }
+.li { display: flex; gap: 8px; align-items: baseline; font-size: 13px; padding: 2px 0 }
+.li .t { width: 6.2em; color: var(--sub); font-size: 12px; font-variant-numeric: tabular-nums; flex: none }
+.li .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex: none; align-self: center }
+.li .c { color: var(--sub); font-size: 11px; margin-left: auto; white-space: nowrap }
+.none { font-size: 12px; color: var(--sub) }
+.msg { font-size: 12px; color: var(--sub); padding: 6px 2px }
+</style>
+</head>
+<body>
+<div class="bar"><button id="prev">‹</button><h1 id="ttl"></h1><button id="today">今日</button><button id="next">›</button></div>
+<div class="grid" id="grid"></div>
+<div class="list" id="list"></div>
+<div class="msg" id="msg"></div>
+<script>
+const q = new URLSearchParams(location.search);
+const SRC = q.get("g"), KEY = q.get("k");
+const TZ = "Asia/Tokyo";
+const pad = n => String(n).padStart(2, "0");
+const fmt = new Intl.DateTimeFormat("sv-SE", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+const jst = d => { const s = fmt.format(d); return { ymd: s.slice(0, 10), hm: s.slice(11, 16) }; };   // 日本時間の「年-月-日」と「時:分」
+const ymdOf = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;       // m は 0〜11
+const nowJ = jst(new Date());
+let view = { y: +nowJ.ymd.slice(0, 4), m: +nowJ.ymd.slice(5, 7) - 1 };
+let sel = nowJ.ymd, events = [];
+
+// 予定を「日ごとの一覧」にする(複数日の予定は、その日ぶんすべてに入れる。終日の予定は終わりの日を含めない)
+function byDay(list) {
+  const map = {};
+  list.forEach(e => {
+    const s = new Date(e.s), en = new Date(e.e);
+    const a = jst(s), b = jst(new Date(en - 1));
+    const item = { t: e.t, all: e.a, c: e.c, col: e.col, start: a.hm, end: jst(en).hm };
+    let d = new Date(a.ymd + "T00:00:00Z"), last = new Date((b.ymd < a.ymd ? a.ymd : b.ymd) + "T00:00:00Z");
+    for (let k = 0; d <= last && k < 45; k++, d = new Date(d.getTime() + 86400000)) {
+      const key = d.toISOString().slice(0, 10);
+      (map[key] = map[key] || []).push({ ...item, first: key === a.ymd });
+    }
+  });
+  Object.values(map).forEach(v => v.sort((x, y) => (y.all - x.all) || x.start.localeCompare(y.start)));
+  return map;
+}
+const evTime = e => e.all ? "終日" : (e.first ? `${e.start}〜${e.end}` : "つづき");
+
+function draw() {
+  const { y, m } = view, map = byDay(events);
+  document.getElementById("ttl").textContent = `${y}年${m + 1}月`;
+  const first = new Date(Date.UTC(y, m, 1)), lead = first.getUTCDay();
+  const weeks = Math.ceil((lead + new Date(Date.UTC(y, m + 1, 0)).getUTCDate()) / 7);
+  let html = "日月火水木金土".split("").map((w, i) => `<div class="dow${i === 0 ? " sun" : i === 6 ? " sat" : ""}">${w}</div>`).join("");
+  for (let i = 0; i < weeks * 7; i++) {
+    const d = new Date(Date.UTC(y, m, 1 - lead + i)), key = d.toISOString().slice(0, 10), dow = d.getUTCDay();
+    const list = map[key] || [], show = list.slice(0, 3), more = list.length - show.length;
+    html += `<div class="day${d.getUTCMonth() !== m ? " out" : ""}${key === nowJ.ymd ? " today" : ""}${key === sel ? " sel" : ""}${dow === 0 ? " sun" : dow === 6 ? " sat" : ""}" data-d="${key}">`
+      + `<div class="n"><b>${d.getUTCDate()}</b></div>`
+      + show.map(e => `<span class="ev" style="--c:${e.col || "#9fe1e7"}">${!e.all && e.first ? `<i>${+e.start.slice(0, 2)}:${e.start.slice(3)}</i>` : ""}${e.t}</span>`).join("")
+      + (more > 0 ? `<div class="more">ほか ${more} 件</div>` : "") + `</div>`;
+  }
+  document.getElementById("grid").innerHTML = html;
+  document.querySelectorAll(".day").forEach(el => el.onclick = () => { sel = el.dataset.d; draw(); });
+  const l = map[sel] || [];
+  document.getElementById("list").innerHTML = `<h2>${+sel.slice(5, 7)}月${+sel.slice(8)}日(${"日月火水木金土"[new Date(sel + "T00:00:00Z").getUTCDay()]})</h2>`
+    + (l.length ? l.map(e => `<div class="li"><span class="dot" style="--c:${e.col || "#9fe1e7"}"></span><span class="t">${evTime(e)}</span><span>${e.t}</span><span class="c">${e.c}</span></div>`).join("") : `<div class="none">予定はありません</div>`);
+}
+
+async function load() {
+  if (!SRC || !KEY) { document.getElementById("msg").textContent = "予定の窓口が未設定です(アドレスに ?g=…&k=… を付けます)"; draw(); return; }
+  const { y, m } = view;
+  const from = new Date(Date.UTC(y, m, -7)), to = new Date(Date.UTC(y, m + 1, 14));   // 前後の週も含めて余裕をもって取る
+  try {
+    const r = await fetch(`${SRC}${SRC.includes("?") ? "&" : "?"}k=${encodeURIComponent(KEY)}&from=${from.toISOString()}&to=${to.toISOString()}`);
+    const j = await r.json();
+    if (j.error) throw new Error(j.error);
+    events = j.events || [];
+    document.getElementById("msg").textContent = "";
+  } catch (e) { document.getElementById("msg").textContent = "予定を取れませんでした。少し待って再読み込みしてください。"; }
+  draw();
+}
+const go = k => { view = { y: view.y + Math.floor((view.m + k) / 12), m: ((view.m + k) % 12 + 12) % 12 }; draw(); load(); };
+document.getElementById("prev").onclick = () => go(-1);
+document.getElementById("next").onclick = () => go(1);
+document.getElementById("today").onclick = () => { view = { y: +nowJ.ymd.slice(0, 4), m: +nowJ.ymd.slice(5, 7) - 1 }; sel = nowJ.ymd; draw(); load(); };
+draw(); load();
+setInterval(load, 5 * 60 * 1000);
+</script>
+</body>
+</html>
