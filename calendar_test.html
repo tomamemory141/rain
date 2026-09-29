@@ -31,7 +31,7 @@ body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var
 .hn { font-size: 11.5px; font-weight: 700; color: #ff9d94; line-height: 14px; margin: -2px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .day.today .n b { background: var(--pop); color: #16202b }
 .day.today { box-shadow: inset 0 0 0 1.5px var(--pop) }
-.ev { display: block; font-size: 12.5px; font-weight: 700; line-height: 17px; padding: 0 6px; margin-top: 2px; border-radius: 4px; color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,.28); background: var(--c); border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.ev { display: block; font-size: 12.5px; font-weight: 500; line-height: 17px; padding: 0 6px; margin-top: 2px; border-radius: 4px; color: #fff; background: var(--bg); border-left: 3px solid var(--c); border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .ev i { font-style: normal; opacity: .7; margin-right: 3px }
 .ev i { font-style: normal; font-weight: 600; opacity: .9; margin-right: 4px; font-variant-numeric: tabular-nums }
 .more { font-size: 11px; color: var(--pop); margin-top: 2px; cursor: pointer }
@@ -85,14 +85,15 @@ const fmt = new Intl.DateTimeFormat("sv-SE", { timeZone: TZ, year: "numeric", mo
 const jst = d => { const s = fmt.format(d); return { ymd: s.slice(0, 10), hm: s.slice(11, 16) }; };   // 日本時間の「年-月-日」と「時:分」
 const ymdOf = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;       // m は 0〜11
 // 予定の色(人生グラフの棒と同じ、はっきりした色)。ふだんは水色。題名で色を変えるものは、上から順に見て最初に合ったものを使う
-const BASE = "#3fa2ff";                 // ふだんの予定 = 水色(白い字が読める濃さ)
-const GREEN = "#2eb872";                // A残塩・B・C・宿直 = 緑(白い字が読める濃さ)
+const BASE = "#8fd4ff";                 // ふだんの予定 = 水色(人生グラフの棒と同じ明るい水色)
+const GREEN = "#b5dc52";                // A残塩・B・C・宿直 = 緑(人生グラフの棒の3本目=「今月」と同じ黄緑)
 const RULES = [
   [/^A残塩/, GREEN],
   [/^B$/,    GREEN],
   [/^C$/,    GREEN],
   [/宿直/,   GREEN],
 ];
+const tint = hex => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},.24)`; };   // 色をうすく透かした背景
 const colorOf = title => { const r = RULES.find(([re]) => re.test(title || "")); return r ? r[1] : BASE; };
 const nowJ = jst(new Date());
 let view = { y: +nowJ.ymd.slice(0, 4), m: +nowJ.ymd.slice(5, 7) - 1 };
@@ -141,7 +142,7 @@ function cell(key, map, o) {
   const show = o.full ? list : list.slice(0, hols.length ? 2 : 3), more = list.length - show.length;
   return `<div class="day${o.out ? " out" : ""}${key === nowJ.ymd ? " today" : ""}${key < nowJ.ymd ? " past" : ""}${key === sel ? " sel" : ""}${hols.length ? " hol" : ""}${dow === 0 ? " sun" : dow === 6 ? " sat" : ""}" data-d="${key}">`
     + `<div class="n"><b>${+key.slice(8)}</b></div>` + hols.map(e => `<div class="hn">${e.t}</div>`).join("")
-    + show.map(e => `<span class="ev" style="--c:${e.col}">${hmTxt(e) ? `<i>${hmTxt(e)}</i>` : ""}${e.t}</span>`).join("")
+    + show.map(e => `<span class="ev" style="--c:${e.col};--bg:${tint(e.col)}">${hmTxt(e) ? `<i>${hmTxt(e)}</i>` : ""}${e.t}</span>`).join("")
     + (more > 0 ? `<div class="more" data-w="${key}">ほか ${more} 件 ›</div>` : "") + `</div>`;
 }
 
@@ -169,11 +170,23 @@ function draw() {
   drawNow();
 }
 
+// 前回の予定をブラウザに覚えておき、開いたらすぐ出す(窓口の返事が遅い日でも空にならない)
+const lsGet = k => { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+const rangeKey = (from, to) => "cal:" + from.toISOString() + "|" + to.toISOString();
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function fetchEvents(from, to) {
-  const r = await fetch(`${SRC}${SRC.includes("?") ? "&" : "?"}k=${encodeURIComponent(KEY)}&from=${from.toISOString()}&to=${to.toISOString()}`);
-  const j = await r.json();
-  if (j.error) throw new Error(j.error);
-  return j.events || [];
+  for (let n = 0; n < 2; n++) {                      // 失敗したら、少し待ってもう1回
+    const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 40000);
+    try {
+      const r = await fetch(`${SRC}${SRC.includes("?") ? "&" : "?"}k=${encodeURIComponent(KEY)}&from=${from.toISOString()}&to=${to.toISOString()}`, { signal: ctl.signal });
+      const j = await r.json();
+      if (j.error) throw new Error(j.error);
+      lsSet(rangeKey(from, to), j.events || []);
+      return j.events || [];
+    } catch (e) { if (n === 1) throw e; await sleep(2000); }
+    finally { clearTimeout(timer); }
+  }
 }
 const jstDate = ymd => new Date(ymd + "T00:00:00+09:00");
 
@@ -182,11 +195,16 @@ async function load() {
   const { y, m } = view;
   const from = mode === "month" ? new Date(Date.UTC(y, m, -7)) : jstDate(addDays(wk, -7));   // 前後も含めて余裕をもって取る
   const to = mode === "month" ? new Date(Date.UTC(y, m + 1, 14)) : jstDate(addDays(wk, 14));
-  const fail = () => { document.getElementById("msg").textContent = "予定を取れませんでした。少し待って再読み込みしてください。"; };
-  // 2つを同時に取り、届いたほうから先に表示する(片方ずつ待つと遅い)
+  const uFrom = jstDate(nowJ.ymd), uTo = jstDate(addDays(nowJ.ymd, 32));
+  const c1 = lsGet(rangeKey(from, to)), c2 = lsGet(rangeKey(uFrom, uTo));
+  if (c1) events = c1;
+  if (c2) upc = c2;
+  if (c1 || c2) draw();                               // 覚えておいた予定を先に出す
+  const fail = () => { if (!c1) document.getElementById("msg").textContent = "予定を取れませんでした。少し待って再読み込みしてください。"; };
+  // 2つを同時に取り、届いたほうから先に表示する
   await Promise.all([
     fetchEvents(from, to).then(v => { events = v; document.getElementById("msg").textContent = ""; draw(); }).catch(fail),
-    fetchEvents(jstDate(nowJ.ymd), jstDate(addDays(nowJ.ymd, 32))).then(v => { upc = v; draw(); }).catch(() => {}),   // 上の一行用(今日から1か月ぶん)
+    fetchEvents(uFrom, uTo).then(v => { upc = v; draw(); }).catch(() => {}),   // 上の一行用(今日から1か月ぶん)
   ]);
 }
 const go = k => {
