@@ -21,6 +21,7 @@ body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var
 .left { font-size: 12px; color: var(--sub); white-space: nowrap }
 .cd { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; padding: 4px 0 0; border-top: 1px solid rgba(255,255,255,.28) }
 .cd .n { font-size: 15px; font-weight: 700; flex: 1 1 auto; white-space: nowrap }
+.cd .n small { font-size: 11px; font-weight: 400; color: var(--sub); margin-left: 6px }
 .cd .d { font-size: 26px; font-weight: 300; font-variant-numeric: tabular-nums }
 .cd .u { font-size: 12px; color: var(--sub); white-space: nowrap }
 .cd .dt { font-size: 11px; color: var(--sub); width: 100% }
@@ -76,9 +77,11 @@ function draw() {
   }).join("");
   const t0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   document.getElementById("wrap").innerHTML += EVENTS.map(e => {
-    const days = Math.round((e.date - t0) / 86400000), w = e.date.getMonth() + 1 + "月" + e.date.getDate() + "日";
-    return days < 0 ? `<div class="cd"><div class="n">${e.name}</div><div class="u">${w}(終わりました)</div></div>`
-      : `<div class="cd"><div class="n">${e.name}</div><div class="d">${days === 0 ? "今日" : days}</div><div class="u">${days === 0 ? "" : "日後"}</div><div class="dt">${w}${days >= 14 ? `(約${Math.floor(days / 7)}週間後)` : ""}</div></div>`;
+    const days = Math.round((e.date - t0) / 86400000);
+    const w = `${e.date.getMonth() + 1}月${e.date.getDate()}日(${"日月火水木金土"[e.date.getDay()]})`;
+    const wk = days >= 7 ? `・あと${Math.floor(days / 7)}週間` : "";   // 試験の名前の横に「何月何日・あと何週間」
+    return days < 0 ? `<div class="cd"><div class="n">${e.name}<small>${w}</small></div><div class="u">終わりました</div></div>`
+      : `<div class="cd"><div class="n">${e.name}<small>${w}${wk}</small></div><div class="d">${days === 0 ? "今日" : days}</div><div class="u">${days === 0 ? "" : "日後"}</div></div>`;
   }).join("");
   document.getElementById("foot").textContent = born ? `人生は ${LIFE}歳までで計算` : "";
 }
