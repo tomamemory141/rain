@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>カレンダー</title>
+<style>
+/* Googleカレンダーの予定を月表示で出す。予定の窓口(Apps Script)のアドレスと合言葉は、ページの中に書かず ?g=…&k=… で渡す */
+:root { --sky1: #3a4a5e; --sky2: #26313f; --fg: #fff; --sub: rgba(255,255,255,.72); --line: rgba(255,255,255,.28); --card: rgba(255,255,255,.10); --pop: #8fd4ff;
+  --font: -apple-system, "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif; color-scheme: dark }
+* { box-sizing: border-box }
+html, body { margin: 0 }
+body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var(--fg); font-family: var(--font); padding: 6px 12px; min-height: 100vh }
+.card { background: var(--card); border-radius: 16px; padding: 8px 12px 10px; backdrop-filter: blur(12px) }
+.bar { display: flex; align-items: center; gap: 8px; margin-bottom: 6px }
+.bar h1 { font-size: 18px; margin: 0; font-weight: 700; flex: 1 }
+.bar button { background: rgba(255,255,255,.10); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 4px 12px; font: inherit; font-size: 15px; cursor: pointer }
+.bar button:hover { background: rgba(255,255,255,.22) }
+.grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line); background: #4a5869 }   /* マスの中の色(天気予報の雨グラフと同じ) */
+.dow { font-size: 12px; font-weight: 700; color: var(--sub); text-align: center; padding: 3px 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line) }
+.dow.sun, .day.sun .n { color: #ff9a8f }
+.dow.sat, .day.sat .n { color: var(--pop) }
+.day { min-height: 84px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 2px 4px 3px; overflow: hidden; cursor: pointer }
+.day.out { opacity: .42 }
+.day.sel { background: rgba(255,255,255,.14) }
+.day:hover { background: rgba(255,255,255,.07) }
+.n { font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; height: 20px }
+.n b { display: inline-block; min-width: 20px; height: 20px; line-height: 20px; border-radius: 10px; text-align: center; font-weight: 700 }
+.day.hol { background: rgba(255,140,130,.12) }
+.day.hol .n b { color: #ff8f85 }
+.hn { font-size: 11.5px; font-weight: 700; color: #ff9d94; line-height: 14px; margin: -2px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.day.today .n b { background: var(--pop); color: #16202b }
+.day.today { box-shadow: inset 0 0 0 1.5px var(--pop) }
+.ev { display: block; font-size: 12.5px; font-weight: 700; line-height: 17px; padding: 0 6px; margin-top: 2px; border-radius: 4px; color: #10202e; background: var(--c); border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.ev i { font-style: normal; opacity: .7; margin-right: 3px }
+.ev i { font-style: normal; font-weight: 600; opacity: .72; margin-right: 4px; font-variant-numeric: tabular-nums }
+.more { font-size: 11px; color: var(--sub); margin-top: 2px }
+.list { margin-top: 5px; padding: 7px 12px; border-radius: 16px; background: var(--card) }
+.list h2 { font-size: 14px; margin: 0 0 3px; font-weight: 700 }
+.li { display: flex; gap: 10px; align-items: baseline; font-size: 14px; padding: 2px 0 }
+.li .t { width: 7.2em; color: var(--sub); font-size: 13px; font-variant-numeric: tabular-nums; flex: none }
+.li .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; align-self: center }
+.li .c { color: var(--sub); font-size: 12px; margin-left: auto; white-space: nowrap }
+.none { font-size: 14px; color: var(--sub) }
+.msg { font-size: 12px; color: var(--sub); padding: 6px 2px }
+/* 今日・次の予定の一行 */
+.nowline { font-size: 14px; line-height: 1.5; padding: 0 2px 8px }
+.nowline b { color: var(--pop); margin-right: 6px }
+.nowline .nx { display: block; color: var(--sub); font-size: 13px }
+.nowline .nx b { color: var(--sub) }
+/* 月/週の切り替え */
+.mode { display: inline-flex }
+.mode button { border-radius: 0; padding: 4px 10px }
+.mode button:first-child { border-radius: 8px 0 0 8px }
+.mode button:last-child { border-radius: 0 8px 8px 0; border-left: 0 }
+.mode button.on { background: var(--pop); color: #16202b; border-color: var(--pop); font-weight: 700 }
+/* 過ぎた日は少し暗く */
+.day.past { background: rgba(0,0,0,.16) }
+.day.past .ev { opacity: .5 }
+.day.past .n { opacity: .65 }
+/* 週表示:1週間だけ大きく、予定は全部出す */
+.wk .day { min-height: 190px }
+.wk .ev { white-space: normal; overflow: visible; line-height: 17px; padding: 2px 6px }
+.wk .n { height: 24px; font-size: 14px }
+/* 幅がせまい時(Notionの枠がせまい時)は、予定を折り返して読めるようにする */
+@media (max-width: 720px) {
+  .ev { white-space: normal; overflow: visible; line-height: 15px; padding: 1px 4px; font-size: 12px }
+  .ev i { display: block; margin: 0; font-size: 10.5px; opacity: .8 }
+  .day { min-height: 96px }
+  .bar h1 { font-size: 16px }
+}
+</style>
+</head>
+<body>
+<div class="card">
+<div class="nowline" id="nowline"></div>
+<div class="bar"><button id="prev">‹</button><h1 id="ttl"></h1><span class="mode"><button id="mMonth">月</button><button id="mWeek">週</button></span><button id="today">今日</button><button id="next">›</button></div>
+<div class="grid" id="grid"></div>
+</div>
+<div class="list" id="list"></div>
+<div class="msg" id="msg"></div>
+<script>
+const q = new URLSearchParams(location.search);
+const SRC = q.get("g"), KEY = q.get("k");
+const TZ = "Asia/Tokyo";
+const pad = n => String(n).padStart(2, "0");
+const fmt = new Intl.DateTimeFormat("sv-SE", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+const jst = d => { const s = fmt.format(d); return { ymd: s.slice(0, 10), hm: s.slice(11, 16) }; };   // 日本時間の「年-月-日」と「時:分」
+const ymdOf = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;       // m は 0〜11
+// 予定の色(人生グラフの棒と同じ、はっきりした色)。ふだんは水色。題名で色を変えるものは、上から順に見て最初に合ったものを使う
+const BASE = "#8fd4ff";                 // ふだんの予定 = 水色
+const GREEN = "#5fd38d";                // A残塩・B・C・宿直 = 緑
+const RULES = [
+  [/^A残塩/, GREEN],
+  [/^B$/,    GREEN],
+  [/^C$/,    GREEN],
+  [/宿直/,   GREEN],
+];
+const colorOf = title => { const r = RULES.find(([re]) => re.test(title || "")); return r ? r[1] : BASE; };
+const nowJ = jst(new Date());
+let view = { y: +nowJ.ymd.slice(0, 4), m: +nowJ.ymd.slice(5, 7) - 1 };
+let sel = nowJ.ymd, events = [];
+
+// 予定を「日ごとの一覧」にする(複数日の予定は、その日ぶんすべてに入れる。終日の予定は終わりの日を含めない)
+function byDay(list) {
+  const map = {};
+  list.forEach(e => {
+    const s = new Date(e.s), en = new Date(e.e);
+    const a = jst(s), b = jst(new Date(en - 1));
+    const item = { t: e.t, all: e.a, c: e.c, col: colorOf(e.t), hol: /祝日|holiday/i.test(e.c || ""), start: a.hm, end: jst(en).hm };
+    let d = new Date(a.ymd + "T00:00:00Z"), last = new Date((b.ymd < a.ymd ? a.ymd : b.ymd) + "T00:00:00Z");
+    for (let k = 0; d <= last && k < 45; k++, d = new Date(d.getTime() + 86400000)) {
+      const key = d.toISOString().slice(0, 10);
+      (map[key] = map[key] || []).push({ ...item, first: key === a.ymd });
+    }
+  });
+  Object.values(map).forEach(v => v.sort((x, y) => (y.all - x.all) || x.start.localeCompare(y.start)));
+  return map;
+}
+const evTime = e => e.hol ? "祝日" : e.all ? "終日" : (e.first ? `${e.start}〜${e.end}` : "つづき");
+const DOW = "日月火水木金土";
+const addDays = (ymd, n) => new Date(new Date(ymd + "T00:00:00Z").getTime() + n * 86400000).toISOString().slice(0, 10);
+const dowOf = ymd => new Date(ymd + "T00:00:00Z").getUTCDay();
+const weekStart = ymd => addDays(ymd, -dowOf(ymd));
+const md = ymd => `${+ymd.slice(5, 7)}/${+ymd.slice(8)}(${DOW[dowOf(ymd)]})`;
+const hmTxt = e => (!e.all && e.first) ? `${+e.start.slice(0, 2)}:${e.start.slice(3)}` : "";
+let mode = "month", wk = weekStart(nowJ.ymd), upc = [];
+
+// 上の一行:今日の予定と、次の予定
+function drawNow() {
+  const map = byDay(upc), today = map[nowJ.ymd] || [];
+  const hol = today.filter(e => e.hol).map(e => e.t).join("・"), items = today.filter(e => !e.hol);
+  const part = e => `${hmTxt(e) ? hmTxt(e) + " " : ""}${e.t}`;
+  let html = `<b>今日 ${md(nowJ.ymd)}</b>${hol ? `<span style="color:#ff9d94">${hol}</span> ` : ""}${items.length ? items.map(part).join(" / ") : "予定なし"}`;
+  for (let k = 1; k <= 30; k++) {
+    const key = addDays(nowJ.ymd, k), l = (map[key] || []).filter(e => !e.hol);
+    if (l.length) { html += `<span class="nx"><b>次 ${md(key)}</b>${part(l[0])}${l.length > 1 ? ` ほか${l.length - 1}件` : ""}</span>`; break; }
+  }
+  document.getElementById("nowline").innerHTML = SRC && KEY ? html : "";
+}
+
+function cell(key, map, o) {
+  const dow = dowOf(key), all = map[key] || [], hols = all.filter(e => e.hol), list = all.filter(e => !e.hol);
+  const show = o.full ? list : list.slice(0, hols.length ? 2 : 3), more = list.length - show.length;
+  return `<div class="day${o.out ? " out" : ""}${key === nowJ.ymd ? " today" : ""}${key < nowJ.ymd ? " past" : ""}${key === sel ? " sel" : ""}${hols.length ? " hol" : ""}${dow === 0 ? " sun" : dow === 6 ? " sat" : ""}" data-d="${key}">`
+    + `<div class="n"><b>${+key.slice(8)}</b></div>` + hols.map(e => `<div class="hn">${e.t}</div>`).join("")
+    + show.map(e => `<span class="ev" style="--c:${e.col}">${hmTxt(e) ? `<i>${hmTxt(e)}</i>` : ""}${e.t}</span>`).join("")
+    + (more > 0 ? `<div class="more">ほか ${more} 件</div>` : "") + `</div>`;
+}
+
+function draw() {
+  const { y, m } = view, map = byDay(events), grid = document.getElementById("grid");
+  let html = DOW.split("").map((w, i) => `<div class="dow${i === 0 ? " sun" : i === 6 ? " sat" : ""}">${w}</div>`).join("");
+  if (mode === "month") {
+    document.getElementById("ttl").textContent = `${y}年${m + 1}月`;
+    const lead = new Date(Date.UTC(y, m, 1)).getUTCDay(), weeks = Math.ceil((lead + new Date(Date.UTC(y, m + 1, 0)).getUTCDate()) / 7);
+    for (let i = 0; i < weeks * 7; i++) {
+      const d = new Date(Date.UTC(y, m, 1 - lead + i));
+      html += cell(d.toISOString().slice(0, 10), map, { out: d.getUTCMonth() !== m });
+    }
+  } else {
+    const end = addDays(wk, 6);
+    document.getElementById("ttl").textContent = `${+wk.slice(5, 7)}月${+wk.slice(8)}日〜${+end.slice(5, 7)}月${+end.slice(8)}日`;
+    for (let i = 0; i < 7; i++) html += cell(addDays(wk, i), map, { full: true });
+  }
+  grid.className = "grid" + (mode === "week" ? " wk" : "");
+  grid.innerHTML = html;
+  document.getElementById("mMonth").className = mode === "month" ? "on" : "";
+  document.getElementById("mWeek").className = mode === "week" ? "on" : "";
+  document.querySelectorAll(".day").forEach(el => el.onclick = () => { sel = el.dataset.d; draw(); });
+  const l = map[sel] || [];
+  document.getElementById("list").innerHTML = `<h2>${+sel.slice(5, 7)}月${+sel.slice(8)}日(${DOW[dowOf(sel)]})</h2>`
+    + (l.length ? l.map(e => `<div class="li"><span class="dot" style="--c:${e.col}"></span><span class="t">${evTime(e)}</span><span>${e.t}</span><span class="c">${e.c}</span></div>`).join("") : `<div class="none">予定はありません</div>`);
+  drawNow();
+}
+
+async function fetchEvents(from, to) {
+  const r = await fetch(`${SRC}${SRC.includes("?") ? "&" : "?"}k=${encodeURIComponent(KEY)}&from=${from.toISOString()}&to=${to.toISOString()}`);
+  const j = await r.json();
+  if (j.error) throw new Error(j.error);
+  return j.events || [];
+}
+const jstDate = ymd => new Date(ymd + "T00:00:00+09:00");
+
+async function load() {
+  if (!SRC || !KEY) { document.getElementById("msg").textContent = "予定の窓口が未設定です(アドレスに ?g=…&k=… を付けます)"; draw(); return; }
+  const { y, m } = view;
+  const from = mode === "month" ? new Date(Date.UTC(y, m, -7)) : jstDate(addDays(wk, -7));   // 前後も含めて余裕をもって取る
+  const to = mode === "month" ? new Date(Date.UTC(y, m + 1, 14)) : jstDate(addDays(wk, 14));
+  try {
+    events = await fetchEvents(from, to);
+    upc = await fetchEvents(jstDate(nowJ.ymd), jstDate(addDays(nowJ.ymd, 32)));   // 上の一行用(今日から1か月ぶん)
+    document.getElementById("msg").textContent = "";
+  } catch (e) { document.getElementById("msg").textContent = "予定を取れませんでした。少し待って再読み込みしてください。"; }
+  draw();
+}
+const go = k => {
+  if (mode === "month") view = { y: view.y + Math.floor((view.m + k) / 12), m: ((view.m + k) % 12 + 12) % 12 };
+  else { wk = addDays(wk, 7 * k); sel = wk; }
+  draw(); load();
+};
+document.getElementById("prev").onclick = () => go(-1);
+document.getElementById("next").onclick = () => go(1);
+document.getElementById("today").onclick = () => { view = { y: +nowJ.ymd.slice(0, 4), m: +nowJ.ymd.slice(5, 7) - 1 }; wk = weekStart(nowJ.ymd); sel = nowJ.ymd; draw(); load(); };
+document.getElementById("mMonth").onclick = () => { mode = "month"; view = { y: +sel.slice(0, 4), m: +sel.slice(5, 7) - 1 }; draw(); load(); };
+document.getElementById("mWeek").onclick = () => { mode = "week"; wk = weekStart(sel); draw(); load(); };
+draw(); load();
+setInterval(load, 5 * 60 * 1000);
+</script>
+</body>
+</html>
