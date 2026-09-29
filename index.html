@@ -336,7 +336,7 @@ async function loadWeather(rainNow) {
   };
   const mm = v => v == null ? "" : v < 0.5 ? "0mm" : v < 10 ? `${v.toFixed(1)}mm` : `${Math.round(v)}mm`;
   document.getElementById("days").innerHTML =
-    `<div class="d head"><div></div><div></div><div>確率</div><div class="mm" style="margin:0"><div class="ax"><b style="left:0">0時</b><b style="left:25%">6</b><b style="left:50%">12</b><b style="left:75%">18</b></div><span></span></div><div></div><div></div><div></div></div>` +
+    `<div class="d head"><div></div><div></div><div>確率</div><div class="mm" style="margin:0"><div class="ax"><b style="left:0">0時</b><b style="left:25%">6</b><b style="left:50%">12</b><b style="left:75%">18</b></div><span>合計</span></div><div></div><div></div><div></div></div>` +
     days.map((d, i) => {
       const wd = i === 0 ? "今日" : "日月火水木金土"[new Date(d.t + "T00:00:00Z").getUTCDay()];   // 日付だけで曜日を出す(見る人の時差に左右されない)
       const dot = i === 0 ? `<i class="dot" style="left:${pos(c.temperature_2m)}%"></i>` : "";
