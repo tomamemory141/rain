@@ -70,7 +70,7 @@ function draw() {
   const now = new Date();
   // 名前の横に出す「いま」: 今日=何時 / 今週=何曜日 / 今月=何日 / 今年=何年 / 人生=何年(満年数)
   const yrs = born ? now.getFullYear() - born.getFullYear() - (now < new Date(now.getFullYear(), born.getMonth(), born.getDate()) ? 1 : 0) : null;
-  const SUB = { day: `${now.getHours()}時`, week: `${"日月火水木金土"[now.getDay()]}曜日`, month: `${now.getDate()}日`, year: `${now.getFullYear()}年`, life: yrs === null ? "" : `${yrs}年・${Math.floor((now - born) / 86400000).toLocaleString()}日` };
+  const SUB = { day: `${now.getHours()}時`, week: `${"日月火水木金土"[now.getDay()]}曜日`, month: `${now.getDate()}日`, year: `${now.getFullYear()}年`, life: born ? `${((now - born) / 86400000 / 365.25).toFixed(1)}年(${Math.floor((now - born) / 86400000).toLocaleString()}日)` : "" };
   document.getElementById("wrap").innerHTML = ROWS.map(([u, name, c]) => {
     if (u === "life" && !born) return `<div class="row"><div class="n">${name}</div><div class="left" style="grid-column:2/-1;white-space:normal">誕生日が未設定です(アドレスの最後に ?b=1990-01-01 のように付けます)</div></div>`;
     const [a, b] = span(u, now), p = Math.min(100, Math.max(0, (now - a) / (b - a) * 100));
