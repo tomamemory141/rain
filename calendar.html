@@ -93,7 +93,7 @@ const RULES = [
   [/^C$/,    GREEN],
   [/宿直/,   GREEN],
 ];
-const tint = hex => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},.24)`; };   // 色をうすく透かした背景
+const tint = hex => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},.38)`; };   // 色をうすく透かした背景
 const colorOf = title => { const r = RULES.find(([re]) => re.test(title || "")); return r ? r[1] : BASE; };
 const nowJ = jst(new Date());
 let view = { y: +nowJ.ymd.slice(0, 4), m: +nowJ.ymd.slice(5, 7) - 1 };
