@@ -170,11 +170,23 @@ function draw() {
   drawNow();
 }
 
+// 前回の予定をブラウザに覚えておき、開いたらすぐ出す(窓口の返事が遅い日でも空にならない)
+const lsGet = k => { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+const rangeKey = (from, to) => "cal:" + from.toISOString() + "|" + to.toISOString();
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function fetchEvents(from, to) {
-  const r = await fetch(`${SRC}${SRC.includes("?") ? "&" : "?"}k=${encodeURIComponent(KEY)}&from=${from.toISOString()}&to=${to.toISOString()}`);
-  const j = await r.json();
-  if (j.error) throw new Error(j.error);
-  return j.events || [];
+  for (let n = 0; n < 2; n++) {                      // 失敗したら、少し待ってもう1回
+    const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 40000);
+    try {
+      const r = await fetch(`${SRC}${SRC.includes("?") ? "&" : "?"}k=${encodeURIComponent(KEY)}&from=${from.toISOString()}&to=${to.toISOString()}`, { signal: ctl.signal });
+      const j = await r.json();
+      if (j.error) throw new Error(j.error);
+      lsSet(rangeKey(from, to), j.events || []);
+      return j.events || [];
+    } catch (e) { if (n === 1) throw e; await sleep(2000); }
+    finally { clearTimeout(timer); }
+  }
 }
 const jstDate = ymd => new Date(ymd + "T00:00:00+09:00");
 
@@ -183,11 +195,16 @@ async function load() {
   const { y, m } = view;
   const from = mode === "month" ? new Date(Date.UTC(y, m, -7)) : jstDate(addDays(wk, -7));   // 前後も含めて余裕をもって取る
   const to = mode === "month" ? new Date(Date.UTC(y, m + 1, 14)) : jstDate(addDays(wk, 14));
-  const fail = () => { document.getElementById("msg").textContent = "予定を取れませんでした。少し待って再読み込みしてください。"; };
-  // 2つを同時に取り、届いたほうから先に表示する(片方ずつ待つと遅い)
+  const uFrom = jstDate(nowJ.ymd), uTo = jstDate(addDays(nowJ.ymd, 32));
+  const c1 = lsGet(rangeKey(from, to)), c2 = lsGet(rangeKey(uFrom, uTo));
+  if (c1) events = c1;
+  if (c2) upc = c2;
+  if (c1 || c2) draw();                               // 覚えておいた予定を先に出す
+  const fail = () => { if (!c1) document.getElementById("msg").textContent = "予定を取れませんでした。少し待って再読み込みしてください。"; };
+  // 2つを同時に取り、届いたほうから先に表示する
   await Promise.all([
     fetchEvents(from, to).then(v => { events = v; document.getElementById("msg").textContent = ""; draw(); }).catch(fail),
-    fetchEvents(jstDate(nowJ.ymd), jstDate(addDays(nowJ.ymd, 32))).then(v => { upc = v; draw(); }).catch(() => {}),   // 上の一行用(今日から1か月ぶん)
+    fetchEvents(uFrom, uTo).then(v => { upc = v; draw(); }).catch(() => {}),   // 上の一行用(今日から1か月ぶん)
   ]);
 }
 const go = k => {
