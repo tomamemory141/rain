@@ -86,7 +86,7 @@ const jst = d => { const s = fmt.format(d); return { ymd: s.slice(0, 10), hm: s.
 const ymdOf = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;       // m は 0〜11
 // 予定の色(人生グラフの棒と同じ、はっきりした色)。ふだんは水色。題名で色を変えるものは、上から順に見て最初に合ったものを使う
 const BASE = "#8fd4ff";                 // ふだんの予定 = 水色(人生グラフの棒と同じ明るい水色)
-const GREEN = "#5fd38d";                // A残塩・B・C・宿直 = 緑(明るい緑)
+const GREEN = "#b5dc52";                // A残塩・B・C・宿直 = 緑(人生グラフの棒の3本目=「今月」と同じ黄緑)
 const RULES = [
   [/^A残塩/, GREEN],
   [/^B$/,    GREEN],
