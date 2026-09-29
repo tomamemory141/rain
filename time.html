@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>時間の進み具合</title>
+<title>人生グラフ</title>
 <style>
 /* 今日・今週・今月・今年・人生が、どれだけ進んだかを棒で出す。誕生日は ?b=1992-12-01 のようにアドレスで渡す(ページの中には書かない) */
 :root { --fg: #1b2733; --sub: #5d6b79; --font: -apple-system, "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif; color-scheme: light }
@@ -72,7 +72,7 @@ function draw() {
   // 名前の横に出す「いま」: 今日=何時 / 今週=何曜日 / 今月=何日 / 今年=何年 / 人生=何年(満年数)
   const yrs = born ? now.getFullYear() - born.getFullYear() - (now < new Date(now.getFullYear(), born.getMonth(), born.getDate()) ? 1 : 0) : null;
   const SUB = { day: `${now.getHours()}時`, week: `${"日月火水木金土"[now.getDay()]}曜日`, month: `${now.getDate()}日`, year: `${now.getFullYear()}年`, life: born ? `${((now - born) / 86400000 / 365.25).toFixed(1)}年(${Math.floor((now - born) / 86400000).toLocaleString()}日)` : "" };
-  document.getElementById("wrap").innerHTML = `<div class="cap">時間の進み具合</div>` + ROWS.map(([u, name, c]) => {
+  document.getElementById("wrap").innerHTML = `<div class="cap">人生グラフ</div>` + ROWS.map(([u, name, c]) => {
     if (u === "life" && !born) return `<div class="row"><div class="n">${name}</div><div class="left" style="grid-column:2/-1;white-space:normal">誕生日が未設定です(アドレスの最後に ?b=1990-01-01 のように付けます)</div></div>`;
     const [a, b] = span(u, now), p = Math.min(100, Math.max(0, (now - a) / (b - a) * 100));
     return `<div class="row"><div class="n">${name}<small>${SUB[u]}</small></div><div class="bar"><i style="width:${p}%;--c:${c}"></i>${ticks(u, a, b).map(f => `<b style="left:${f * 100}%"></b>`).join("")}</div><div class="pct">${p.toFixed(1)}%</div><div class="left">${fmtLeft(b - now, u)}</div></div>`;
