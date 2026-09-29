@@ -11,7 +11,7 @@
 * { box-sizing: border-box }
 html, body { margin: 0 }
 body { background: #fff; color: var(--fg); font-family: var(--font); padding: 6px 12px; min-height: 100vh }
-.card { background: var(--card); border-radius: 16px; padding: 8px 12px 10px; backdrop-filter: blur(12px) }
+.card { background: var(--card); border-radius: 16px; padding: 10px 14px 10px; backdrop-filter: blur(12px) }
 .bar { display: flex; align-items: center; gap: 8px; margin-bottom: 6px }
 .bar h1 { font-size: 18px; margin: 0; font-weight: 700; flex: 1 }
 .bar button { background: #fff; color: var(--fg); border: 1px solid rgba(20,40,60,.22); border-radius: 8px; padding: 4px 12px; font: inherit; font-size: 15px; cursor: pointer }
@@ -44,9 +44,9 @@ body { background: #fff; color: var(--fg); font-family: var(--font); padding: 6p
 .none { font-size: 14px; color: var(--sub) }
 .msg { font-size: 12px; color: var(--sub); padding: 6px 2px }
 /* 今日・次の予定の一行 */
-.nowline { font-size: 14px; line-height: 1.5; padding: 0 2px 8px }
+.nowline { font-size: 13px; line-height: 1.5; padding: 0 4px 6px }
 .nowline b { color: var(--popText); margin-right: 6px }
-.nowline .nx { display: block; color: var(--sub); font-size: 13px }
+.nowline .nx { display: block; color: var(--sub); font-size: 12px }
 .nowline .nx b { color: var(--sub) }
 /* 月/週の切り替え */
 .mode { display: inline-flex }
@@ -70,8 +70,8 @@ body { background: #fff; color: var(--fg); font-family: var(--font); padding: 6p
 </style>
 </head>
 <body>
-<div class="card">
 <div class="nowline" id="nowline"></div>
+<div class="card">
 <div class="bar"><button id="prev">‹</button><h1 id="ttl"></h1><span class="mode"><button id="mMonth">月</button><button id="mWeek">週</button></span><button id="today">今日</button><button id="next">›</button></div>
 <div class="grid" id="grid"></div>
 </div>
