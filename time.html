@@ -17,6 +17,11 @@ body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var
 .bar { height: 14px; border-radius: 7px; background: rgba(0,0,0,.28); overflow: hidden }
 .bar i { display: block; height: 100%; border-radius: 7px; background: var(--c); min-width: 3px }
 .left { grid-column: 2 / 4; font-size: 11px; color: var(--sub); margin-top: -8px }
+.cd { display: flex; align-items: baseline; gap: 10px; padding: 8px 0 0; border-top: 1px solid rgba(255,255,255,.28) }
+.cd .n { font-size: 15px; font-weight: 700; flex: 1 }
+.cd .d { font-size: 26px; font-weight: 300; font-variant-numeric: tabular-nums }
+.cd .u { font-size: 12px; color: var(--sub) }
+.cd .dt { font-size: 11px; color: var(--sub); width: 100% }
 .foot { font-size: 10px; color: var(--sub); text-align: right }
 </style>
 </head>
@@ -26,6 +31,8 @@ body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var
 <script>
 const q = new URLSearchParams(location.search);
 const born = q.get("b") ? new Date(q.get("b") + "T00:00:00") : null;   // 誕生日
+// 試験などの日付。アドレスに ?x=電験三種@2027-09-05 のように付ける(複数は &x=… を並べる)
+const EVENTS = q.getAll("x").map(t => { const [name, date] = t.split("@"); return { name, date: new Date(date + "T00:00:00") }; }).filter(e => e.name && !isNaN(e.date));
 const LIFE = +q.get("age") || 81;                                      // 何歳までで数えるか(日本人男性の平均寿命は約81歳)
 
 function span(unit, now) {
@@ -51,6 +58,12 @@ function draw() {
     if (u === "life" && !born) return `<div class="row"><div class="n">${name}</div><div class="left" style="grid-column:2/4;margin:0">誕生日が未設定です(アドレスの最後に ?b=1990-01-01 のように付けます)</div></div>`;
     const [a, b] = span(u, now), p = Math.min(100, Math.max(0, (now - a) / (b - a) * 100));
     return `<div class="row"><div class="n">${name}</div><div class="bar"><i style="width:${p}%;--c:${c}"></i></div><div class="pct">${p.toFixed(1)}%</div><div class="left">${fmtLeft(b - now, u)}</div></div>`;
+  }).join("");
+  const t0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  document.getElementById("wrap").innerHTML += EVENTS.map(e => {
+    const days = Math.round((e.date - t0) / 86400000), w = e.date.getMonth() + 1 + "月" + e.date.getDate() + "日";
+    return days < 0 ? `<div class="cd"><div class="n">${e.name}</div><div class="u">${w}(終わりました)</div></div>`
+      : `<div class="cd"><div class="n">${e.name}</div><div class="d">${days === 0 ? "今日" : days}</div><div class="u">${days === 0 ? "" : "日後"}</div><div class="dt">${w}${days >= 14 ? `(約${Math.floor(days / 7)}週間後)` : ""}</div></div>`;
   }).join("");
   document.getElementById("foot").textContent = born ? `人生は ${LIFE}歳までで計算` : "";
 }
