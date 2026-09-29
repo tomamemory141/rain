@@ -43,11 +43,38 @@ body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var
 .li .c { color: var(--sub); font-size: 12px; margin-left: auto; white-space: nowrap }
 .none { font-size: 14px; color: var(--sub) }
 .msg { font-size: 12px; color: var(--sub); padding: 6px 2px }
+/* 今日・次の予定の一行 */
+.nowline { font-size: 14px; line-height: 1.5; padding: 0 2px 8px }
+.nowline b { color: var(--pop); margin-right: 6px }
+.nowline .nx { display: block; color: var(--sub); font-size: 13px }
+.nowline .nx b { color: var(--sub) }
+/* 月/週の切り替え */
+.mode { display: inline-flex }
+.mode button { border-radius: 0; padding: 4px 10px }
+.mode button:first-child { border-radius: 8px 0 0 8px }
+.mode button:last-child { border-radius: 0 8px 8px 0; border-left: 0 }
+.mode button.on { background: var(--pop); color: #16202b; border-color: var(--pop); font-weight: 700 }
+/* 過ぎた日は少し暗く */
+.day.past { background: rgba(0,0,0,.12) }
+.day.past .ev { opacity: .68 }
+.day.past .n { opacity: .7 }
+/* 週表示:1週間だけ大きく、予定は全部出す */
+.wk .day { min-height: 130px }
+.wk .ev { white-space: normal; overflow: visible; line-height: 17px; padding: 2px 6px }
+.wk .n { height: 24px; font-size: 14px }
+/* 幅がせまい時(Notionの枠がせまい時)は、予定を折り返して読めるようにする */
+@media (max-width: 720px) {
+  .ev { white-space: normal; overflow: visible; line-height: 15px; padding: 1px 4px; font-size: 12px }
+  .ev i { display: block; margin: 0; font-size: 10.5px; opacity: .8 }
+  .day { min-height: 96px }
+  .bar h1 { font-size: 16px }
+}
 </style>
 </head>
 <body>
 <div class="card">
-<div class="bar"><button id="prev">‹</button><h1 id="ttl"></h1><button id="today">今日</button><button id="next">›</button></div>
+<div class="nowline" id="nowline"></div>
+<div class="bar"><button id="prev">‹</button><h1 id="ttl"></h1><span class="mode"><button id="mMonth">月</button><button id="mWeek">週</button></span><button id="today">今日</button><button id="next">›</button></div>
 <div class="grid" id="grid"></div>
 </div>
 <div class="list" id="list"></div>
@@ -91,45 +118,92 @@ function byDay(list) {
   return map;
 }
 const evTime = e => e.hol ? "祝日" : e.all ? "終日" : (e.first ? `${e.start}〜${e.end}` : "つづき");
+const DOW = "日月火水木金土";
+const addDays = (ymd, n) => new Date(new Date(ymd + "T00:00:00Z").getTime() + n * 86400000).toISOString().slice(0, 10);
+const dowOf = ymd => new Date(ymd + "T00:00:00Z").getUTCDay();
+const weekStart = ymd => addDays(ymd, -dowOf(ymd));
+const md = ymd => `${+ymd.slice(5, 7)}/${+ymd.slice(8)}(${DOW[dowOf(ymd)]})`;
+const hmTxt = e => (!e.all && e.first) ? `${+e.start.slice(0, 2)}:${e.start.slice(3)}` : "";
+let mode = "month", wk = weekStart(nowJ.ymd), upc = [];
+
+// 上の一行:今日の予定と、次の予定
+function drawNow() {
+  const map = byDay(upc), today = map[nowJ.ymd] || [];
+  const hol = today.filter(e => e.hol).map(e => e.t).join("・"), items = today.filter(e => !e.hol);
+  const part = e => `${hmTxt(e) ? hmTxt(e) + " " : ""}${e.t}`;
+  let html = `<b>今日 ${md(nowJ.ymd)}</b>${hol ? `<span style="color:#ff9d94">${hol}</span> ` : ""}${items.length ? items.map(part).join(" / ") : "予定なし"}`;
+  for (let k = 1; k <= 30; k++) {
+    const key = addDays(nowJ.ymd, k), l = (map[key] || []).filter(e => !e.hol);
+    if (l.length) { html += `<span class="nx"><b>次 ${md(key)}</b>${part(l[0])}${l.length > 1 ? ` ほか${l.length - 1}件` : ""}</span>`; break; }
+  }
+  document.getElementById("nowline").innerHTML = SRC && KEY ? html : "";
+}
+
+function cell(key, map, o) {
+  const dow = dowOf(key), all = map[key] || [], hols = all.filter(e => e.hol), list = all.filter(e => !e.hol);
+  const show = o.full ? list : list.slice(0, hols.length ? 2 : 3), more = list.length - show.length;
+  return `<div class="day${o.out ? " out" : ""}${key === nowJ.ymd ? " today" : ""}${key < nowJ.ymd ? " past" : ""}${key === sel ? " sel" : ""}${hols.length ? " hol" : ""}${dow === 0 ? " sun" : dow === 6 ? " sat" : ""}" data-d="${key}">`
+    + `<div class="n"><b>${+key.slice(8)}</b></div>` + hols.map(e => `<div class="hn">${e.t}</div>`).join("")
+    + show.map(e => `<span class="ev" style="--c:${e.col}">${hmTxt(e) ? `<i>${hmTxt(e)}</i>` : ""}${e.t}</span>`).join("")
+    + (more > 0 ? `<div class="more">ほか ${more} 件</div>` : "") + `</div>`;
+}
 
 function draw() {
-  const { y, m } = view, map = byDay(events);
-  document.getElementById("ttl").textContent = `${y}年${m + 1}月`;
-  const first = new Date(Date.UTC(y, m, 1)), lead = first.getUTCDay();
-  const weeks = Math.ceil((lead + new Date(Date.UTC(y, m + 1, 0)).getUTCDate()) / 7);
-  let html = "日月火水木金土".split("").map((w, i) => `<div class="dow${i === 0 ? " sun" : i === 6 ? " sat" : ""}">${w}</div>`).join("");
-  for (let i = 0; i < weeks * 7; i++) {
-    const d = new Date(Date.UTC(y, m, 1 - lead + i)), key = d.toISOString().slice(0, 10), dow = d.getUTCDay();
-    const all = map[key] || [], hols = all.filter(e => e.hol), list = all.filter(e => !e.hol), show = list.slice(0, hols.length ? 2 : 3), more = list.length - show.length;
-    html += `<div class="day${d.getUTCMonth() !== m ? " out" : ""}${key === nowJ.ymd ? " today" : ""}${key === sel ? " sel" : ""}${hols.length ? " hol" : ""}${dow === 0 ? " sun" : dow === 6 ? " sat" : ""}" data-d="${key}">`
-      + `<div class="n"><b>${d.getUTCDate()}</b></div>` + hols.map(e => `<div class="hn">${e.t}</div>`).join("")
-      + show.map(e => `<span class="ev" style="--c:${e.col}">${!e.all && e.first ? `<i>${+e.start.slice(0, 2)}:${e.start.slice(3)}</i>` : ""}${e.t}</span>`).join("")
-      + (more > 0 ? `<div class="more">ほか ${more} 件</div>` : "") + `</div>`;
+  const { y, m } = view, map = byDay(events), grid = document.getElementById("grid");
+  let html = DOW.split("").map((w, i) => `<div class="dow${i === 0 ? " sun" : i === 6 ? " sat" : ""}">${w}</div>`).join("");
+  if (mode === "month") {
+    document.getElementById("ttl").textContent = `${y}年${m + 1}月`;
+    const lead = new Date(Date.UTC(y, m, 1)).getUTCDay(), weeks = Math.ceil((lead + new Date(Date.UTC(y, m + 1, 0)).getUTCDate()) / 7);
+    for (let i = 0; i < weeks * 7; i++) {
+      const d = new Date(Date.UTC(y, m, 1 - lead + i));
+      html += cell(d.toISOString().slice(0, 10), map, { out: d.getUTCMonth() !== m });
+    }
+  } else {
+    const end = addDays(wk, 6);
+    document.getElementById("ttl").textContent = `${+wk.slice(5, 7)}月${+wk.slice(8)}日〜${+end.slice(5, 7)}月${+end.slice(8)}日`;
+    for (let i = 0; i < 7; i++) html += cell(addDays(wk, i), map, { full: true });
   }
-  document.getElementById("grid").innerHTML = html;
+  grid.className = "grid" + (mode === "week" ? " wk" : "");
+  grid.innerHTML = html;
+  document.getElementById("mMonth").className = mode === "month" ? "on" : "";
+  document.getElementById("mWeek").className = mode === "week" ? "on" : "";
   document.querySelectorAll(".day").forEach(el => el.onclick = () => { sel = el.dataset.d; draw(); });
   const l = map[sel] || [];
-  document.getElementById("list").innerHTML = `<h2>${+sel.slice(5, 7)}月${+sel.slice(8)}日(${"日月火水木金土"[new Date(sel + "T00:00:00Z").getUTCDay()]})</h2>`
+  document.getElementById("list").innerHTML = `<h2>${+sel.slice(5, 7)}月${+sel.slice(8)}日(${DOW[dowOf(sel)]})</h2>`
     + (l.length ? l.map(e => `<div class="li"><span class="dot" style="--c:${e.col}"></span><span class="t">${evTime(e)}</span><span>${e.t}</span><span class="c">${e.c}</span></div>`).join("") : `<div class="none">予定はありません</div>`);
+  drawNow();
 }
+
+async function fetchEvents(from, to) {
+  const r = await fetch(`${SRC}${SRC.includes("?") ? "&" : "?"}k=${encodeURIComponent(KEY)}&from=${from.toISOString()}&to=${to.toISOString()}`);
+  const j = await r.json();
+  if (j.error) throw new Error(j.error);
+  return j.events || [];
+}
+const jstDate = ymd => new Date(ymd + "T00:00:00+09:00");
 
 async function load() {
   if (!SRC || !KEY) { document.getElementById("msg").textContent = "予定の窓口が未設定です(アドレスに ?g=…&k=… を付けます)"; draw(); return; }
   const { y, m } = view;
-  const from = new Date(Date.UTC(y, m, -7)), to = new Date(Date.UTC(y, m + 1, 14));   // 前後の週も含めて余裕をもって取る
+  const from = mode === "month" ? new Date(Date.UTC(y, m, -7)) : jstDate(addDays(wk, -7));   // 前後も含めて余裕をもって取る
+  const to = mode === "month" ? new Date(Date.UTC(y, m + 1, 14)) : jstDate(addDays(wk, 14));
   try {
-    const r = await fetch(`${SRC}${SRC.includes("?") ? "&" : "?"}k=${encodeURIComponent(KEY)}&from=${from.toISOString()}&to=${to.toISOString()}`);
-    const j = await r.json();
-    if (j.error) throw new Error(j.error);
-    events = j.events || [];
+    events = await fetchEvents(from, to);
+    upc = await fetchEvents(jstDate(nowJ.ymd), jstDate(addDays(nowJ.ymd, 32)));   // 上の一行用(今日から1か月ぶん)
     document.getElementById("msg").textContent = "";
   } catch (e) { document.getElementById("msg").textContent = "予定を取れませんでした。少し待って再読み込みしてください。"; }
   draw();
 }
-const go = k => { view = { y: view.y + Math.floor((view.m + k) / 12), m: ((view.m + k) % 12 + 12) % 12 }; draw(); load(); };
+const go = k => {
+  if (mode === "month") view = { y: view.y + Math.floor((view.m + k) / 12), m: ((view.m + k) % 12 + 12) % 12 };
+  else { wk = addDays(wk, 7 * k); sel = wk; }
+  draw(); load();
+};
 document.getElementById("prev").onclick = () => go(-1);
 document.getElementById("next").onclick = () => go(1);
-document.getElementById("today").onclick = () => { view = { y: +nowJ.ymd.slice(0, 4), m: +nowJ.ymd.slice(5, 7) - 1 }; sel = nowJ.ymd; draw(); load(); };
+document.getElementById("today").onclick = () => { view = { y: +nowJ.ymd.slice(0, 4), m: +nowJ.ymd.slice(5, 7) - 1 }; wk = weekStart(nowJ.ymd); sel = nowJ.ymd; draw(); load(); };
+document.getElementById("mMonth").onclick = () => { mode = "month"; view = { y: +sel.slice(0, 4), m: +sel.slice(5, 7) - 1 }; draw(); load(); };
+document.getElementById("mWeek").onclick = () => { mode = "week"; wk = weekStart(sel); draw(); load(); };
 draw(); load();
 setInterval(load, 5 * 60 * 1000);
 </script>
