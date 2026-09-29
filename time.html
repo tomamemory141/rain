@@ -11,7 +11,7 @@
 html, body { margin: 0 }
 body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var(--fg); font-family: var(--font); padding: 6px 12px; min-height: 100vh }
 .wrap { max-width: 560px; display: grid; gap: 8px }
-.row { display: grid; grid-template-columns: 3.2em 1fr 3.9em 8em; align-items: center; gap: 8px }
+.row { display: grid; grid-template-columns: 3.2em 1fr 3.9em max-content; align-items: center; gap: 8px }
 .row .n { font-size: 15px; font-weight: 700 }
 .row .pct { font-size: 15px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 700 }
 .bar { position: relative; height: 14px; border-radius: 7px; background: rgba(0,0,0,.28); overflow: hidden }
@@ -48,7 +48,7 @@ function span(unit, now) {
 const fmtLeft = (ms, unit) => {
   const min = Math.max(0, Math.floor(ms / 60000)), h = Math.floor(min / 60), day = ms / 86400000;
   if (unit === "day") return `あと ${h}時間${min % 60}分`;
-  if (unit === "life") return `あと ${(day / 365.25).toFixed(1)}年`;
+  if (unit === "life") return `あと ${(day / 365.25).toFixed(1)}年(${Math.round(day).toLocaleString()}日)`;
   return `あと ${day >= 1 ? Math.floor(day) + "日" : ""}${day >= 1 ? "" : h + "時間"}`;
 };
 // 棒の区切り(今日=6時間ずつ / 今週=1日ずつ / 今月=5日ずつ / 今年=1か月ずつ / 人生=5年ずつ)。0〜1の位置で返す
