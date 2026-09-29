@@ -28,6 +28,7 @@ body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var
 .title { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 0 0 12px }
 h1 { font-size: 16px; margin: 0; font-weight: 700 }
 .msg { font-size: 13px; margin: 0 }
+.msg.sum { font-weight: 700; color: var(--pop) }
 .plot { position: relative; height: 120px; margin-right: 7.5em; border-bottom: 1px solid rgba(255,255,255,.45) }
 .dots { position: absolute; left: 0; right: -7.5em; border-top: 1.5px dashed rgba(255,255,255,.35) }
 .dots span { position: absolute; right: 0; top: -7px; font-size: 11px; line-height: 13px; color: rgba(255,255,255,.9); white-space: nowrap }
@@ -90,7 +91,7 @@ h1 { font-size: 16px; margin: 0; font-weight: 700 }
   </div>
 
   <div class="card">
-    <div class="title"><h1 id="ttl">雨の予想です</h1><p class="msg" id="msg">データを取ってきています…</p></div>
+    <div class="title"><h1 id="ttl">雨の予想です</h1><p class="msg" id="msg">データを取ってきています…</p><p class="msg sum" id="sum24"></p></div>
     <div class="plot">
       <!-- 目盛り(1時間あたりの雨量)。言葉は気象庁「雨の強さと降り方」より -->
       <div class="dots" style="top:0"><span><b>50mm</b>滝のよう</span></div>
@@ -288,6 +289,8 @@ async function loadWeather(rainNow) {
     }
   }
   document.getElementById("umb").textContent = umb;
+  const tot = H.precipitation.reduce((a, v) => a + (v || 0), 0);   // 今から24時間の雨量の合計
+  document.getElementById("sum24").textContent = `今後24時間の雨量:${tot < 0.05 ? "0" : tot < 10 ? tot.toFixed(1) : Math.round(tot)}mm`;
   const first = H.time[0], last = H.time[H.time.length - 1];
   [...w.daily.sunrise.map(s => [s, svg("sunrise"), "日の出"]), ...w.daily.sunset.map(s => [s, svg("sunset"), "日の入"])]
     .filter(([s]) => s > first && s < last)
