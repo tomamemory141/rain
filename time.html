@@ -11,8 +11,9 @@
 html, body { margin: 0 }
 body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var(--fg); font-family: var(--font); padding: 6px 12px; min-height: 100vh }
 .wrap { max-width: 560px; display: grid; gap: 8px }
-.row { display: grid; grid-template-columns: 3.2em 1fr 3.9em max-content; align-items: center; gap: 8px }
-.row .n { font-size: 15px; font-weight: 700 }
+.row { display: grid; grid-template-columns: 7em 1fr 3.9em max-content; align-items: center; gap: 8px }
+.row .n { font-size: 15px; font-weight: 700; white-space: nowrap }
+.row .n small { font-size: 11px; font-weight: 400; color: var(--sub); margin-left: 5px }
 .row .pct { font-size: 15px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 700 }
 .bar { position: relative; height: 14px; border-radius: 7px; background: rgba(0,0,0,.28); overflow: hidden }
 .bar b { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; border-left: 1px solid rgba(20,30,45,.65); border-right: 1px solid rgba(255,255,255,.45) }
@@ -65,10 +66,13 @@ const ROWS = [["day", "今日", "#8fd4ff"], ["week", "今週", "#6fd3b0"], ["mon
 
 function draw() {
   const now = new Date();
+  // 名前の横に出す「いま」: 今日=何時 / 今週=何曜日 / 今月=何日 / 今年=何年 / 人生=何年(満年数)
+  const yrs = born ? now.getFullYear() - born.getFullYear() - (now < new Date(now.getFullYear(), born.getMonth(), born.getDate()) ? 1 : 0) : null;
+  const SUB = { day: `${now.getHours()}時`, week: `${"日月火水木金土"[now.getDay()]}曜日`, month: `${now.getDate()}日`, year: `${now.getFullYear()}年`, life: yrs === null ? "" : `${yrs}年` };
   document.getElementById("wrap").innerHTML = ROWS.map(([u, name, c]) => {
     if (u === "life" && !born) return `<div class="row"><div class="n">${name}</div><div class="left" style="grid-column:2/-1;white-space:normal">誕生日が未設定です(アドレスの最後に ?b=1990-01-01 のように付けます)</div></div>`;
     const [a, b] = span(u, now), p = Math.min(100, Math.max(0, (now - a) / (b - a) * 100));
-    return `<div class="row"><div class="n">${name}</div><div class="bar"><i style="width:${p}%;--c:${c}"></i>${ticks(u, a, b).map(f => `<b style="left:${f * 100}%"></b>`).join("")}</div><div class="pct">${p.toFixed(1)}%</div><div class="left">${fmtLeft(b - now, u)}</div></div>`;
+    return `<div class="row"><div class="n">${name}<small>${SUB[u]}</small></div><div class="bar"><i style="width:${p}%;--c:${c}"></i>${ticks(u, a, b).map(f => `<b style="left:${f * 100}%"></b>`).join("")}</div><div class="pct">${p.toFixed(1)}%</div><div class="left">${fmtLeft(b - now, u)}</div></div>`;
   }).join("");
   const t0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   document.getElementById("wrap").innerHTML += EVENTS.map(e => {
