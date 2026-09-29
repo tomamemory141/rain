@@ -21,6 +21,7 @@ body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var
 .left { font-size: 12px; color: var(--sub); white-space: nowrap }
 .cd { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; padding: 4px 0 0; border-top: 1px solid rgba(255,255,255,.28) }
 .cd .n { font-size: 15px; font-weight: 700; flex: 1 1 auto; white-space: nowrap }
+.cd .memo { width: 100%; font-size: 11px; color: var(--sub); line-height: 1.4 }
 .cd .n small { font-size: 11px; font-weight: 400; color: var(--sub); margin-left: 6px }
 .cd .d { font-size: 26px; font-weight: 300; font-variant-numeric: tabular-nums }
 .cd .u { font-size: 12px; color: var(--sub); white-space: nowrap }
@@ -34,8 +35,8 @@ body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var
 <script>
 const q = new URLSearchParams(location.search);
 const born = q.get("b") ? new Date(q.get("b") + "T00:00:00") : null;   // 誕生日
-// 試験などの日付。アドレスに ?x=電験三種@2027-09-05 のように付ける(複数は &x=… を並べる)
-const EVENTS = q.getAll("x").map(t => { const [name, date] = t.split("@"); return { name, date: new Date(date + "T00:00:00") }; }).filter(e => e.name && !isNaN(e.date));
+// 試験などの日付。アドレスに ?x=電験三種@2027-09-05@メモ のように付ける(メモは省略できる。複数は &x=… を並べる)
+const EVENTS = q.getAll("x").map(t => { const [name, date, ...m] = t.split("@"); return { name, date: new Date(date + "T00:00:00"), memo: m.join("@") }; }).filter(e => e.name && !isNaN(e.date));
 const LIFE = +q.get("age") || 81;                                      // 何歳までで数えるか(日本人男性の平均寿命は約81歳)
 
 function span(unit, now) {
@@ -80,8 +81,8 @@ function draw() {
     const days = Math.round((e.date - t0) / 86400000);
     const w = `${e.date.getMonth() + 1}月${e.date.getDate()}日(${"日月火水木金土"[e.date.getDay()]})`;
     const wk = days >= 7 ? `・あと${Math.floor(days / 7)}週間` : "";   // 試験の名前の横に「何月何日・あと何週間」
-    return days < 0 ? `<div class="cd"><div class="n">${e.name}<small>${w}</small></div><div class="u">終わりました</div></div>`
-      : `<div class="cd"><div class="n">${e.name}<small>${w}${wk}</small></div><div class="d">${days === 0 ? "今日" : days}</div><div class="u">${days === 0 ? "" : "日後"}</div></div>`;
+    return days < 0 ? `<div class="cd"><div class="n">${e.name}<small>${w}</small></div><div class="u">終わりました</div>${e.memo ? `<div class="memo">${e.memo}</div>` : ""}</div>`
+      : `<div class="cd"><div class="n">${e.name}<small>${w}${wk}</small></div><div class="d">${days === 0 ? "今日" : days}</div><div class="u">${days === 0 ? "" : "日後"}</div>${e.memo ? `<div class="memo">${e.memo}</div>` : ""}</div>`;
   }).join("");
   document.getElementById("foot").textContent = born ? `人生は ${LIFE}歳までで計算` : "";
 }
