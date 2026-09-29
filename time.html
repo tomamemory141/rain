@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>時間の進み具合</title>
+<style>
+/* 今日・今週・今月・今年・人生が、どれだけ進んだかを棒で出す。誕生日は ?b=1992-12-01 のようにアドレスで渡す(ページの中には書かない) */
+:root { --sky1: #3a4a5e; --sky2: #26313f; --fg: #fff; --sub: rgba(255,255,255,.72); --font: -apple-system, "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif; color-scheme: dark }
+* { box-sizing: border-box }
+html, body { margin: 0 }
+body { background: linear-gradient(160deg, var(--sky1), var(--sky2)); color: var(--fg); font-family: var(--font); padding: 12px 16px; min-height: 100vh }
+.wrap { max-width: 560px; display: grid; gap: 12px }
+.row { display: grid; grid-template-columns: 3.2em 1fr 4.6em; align-items: center; gap: 10px }
+.row .n { font-size: 15px; font-weight: 700 }
+.row .pct { font-size: 15px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 700 }
+.bar { height: 14px; border-radius: 7px; background: rgba(0,0,0,.28); overflow: hidden }
+.bar i { display: block; height: 100%; border-radius: 7px; background: var(--c); min-width: 3px }
+.left { grid-column: 2 / 4; font-size: 11px; color: var(--sub); margin-top: -8px }
+.foot { font-size: 10px; color: var(--sub); text-align: right }
+</style>
+</head>
+<body>
+<div class="wrap" id="wrap"></div>
+<div class="foot" id="foot"></div>
+<script>
+const q = new URLSearchParams(location.search);
+const born = q.get("b") ? new Date(q.get("b") + "T00:00:00") : null;   // 誕生日
+const LIFE = +q.get("age") || 81;                                      // 何歳までで数えるか(日本人男性の平均寿命は約81歳)
+
+function span(unit, now) {
+  const y = now.getFullYear(), m = now.getMonth(), d = now.getDate();
+  if (unit === "day")   return [new Date(y, m, d), new Date(y, m, d + 1)];
+  if (unit === "week")  { const dow = (now.getDay() + 6) % 7; return [new Date(y, m, d - dow), new Date(y, m, d - dow + 7)]; }   // 月曜はじまり
+  if (unit === "month") return [new Date(y, m, 1), new Date(y, m + 1, 1)];
+  if (unit === "year")  return [new Date(y, 0, 1), new Date(y + 1, 0, 1)];
+  const end = new Date(born); end.setFullYear(end.getFullYear() + LIFE);
+  return [born, end];
+}
+const fmtLeft = (ms, unit) => {
+  const min = Math.max(0, Math.floor(ms / 60000)), h = Math.floor(min / 60), day = ms / 86400000;
+  if (unit === "day") return `あと ${h}時間${min % 60}分`;
+  if (unit === "life") return `あと 約${(day / 365.25).toFixed(1)}年(${Math.round(day).toLocaleString()}日)`;
+  return `あと ${day >= 1 ? Math.floor(day) + "日" : ""}${day >= 1 ? "" : h + "時間"}`;
+};
+const ROWS = [["day", "今日", "#8fd4ff"], ["week", "今週", "#6fd3b0"], ["month", "今月", "#b5dc52"], ["year", "今年", "#ffd23f"], ["life", "人生", "#ff9f0a"]];
+
+function draw() {
+  const now = new Date();
+  document.getElementById("wrap").innerHTML = ROWS.map(([u, name, c]) => {
+    if (u === "life" && !born) return `<div class="row"><div class="n">${name}</div><div class="left" style="grid-column:2/4;margin:0">誕生日が未設定です(アドレスの最後に ?b=1990-01-01 のように付けます)</div></div>`;
+    const [a, b] = span(u, now), p = Math.min(100, Math.max(0, (now - a) / (b - a) * 100));
+    return `<div class="row"><div class="n">${name}</div><div class="bar"><i style="width:${p}%;--c:${c}"></i></div><div class="pct">${p.toFixed(1)}%</div><div class="left">${fmtLeft(b - now, u)}</div></div>`;
+  }).join("");
+  document.getElementById("foot").textContent = born ? `人生は ${LIFE}歳までで計算` : "";
+}
+draw();
+setInterval(draw, 30 * 1000);
+</script>
+</body>
+</html>
