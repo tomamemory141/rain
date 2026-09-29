@@ -269,14 +269,17 @@ async function loadWeather(rainNow) {
     const j = await fetch(JMA_FC, { cache: "no-store" }).then(r => r.json());
     const put = (date, code, p) => { const d = days.find(x => x.t === date); if (!d) return;
       if (code) d.ic = svg(jmaIcon(code)); if (p !== undefined && p !== "") d.p = `${p}%`; };
-    // 今日:短期予報の天気と、今日の6時間ごとの降水確率のうち一番高いもの
+    // 今日・明日(・明後日):短期予報の天気と、その日の6時間ごとの降水確率のうち一番高いもの
     const s0 = j[0].timeSeries[0], s1 = j[0].timeSeries[1];
-    const today = D.time[0];
-    const pToday = s1.timeDefines.map((d, k) => d.startsWith(today) ? +s1.areas[0].pops[k] : -1).filter(v => v >= 0);
-    s0.timeDefines.forEach((d, k) => { if (d.startsWith(today)) put(today, s0.areas[0].weatherCodes[k], pToday.length ? Math.max(...pToday) : undefined); });
-    // 明日以降:週間予報
+    const pDay = date => { const v = s1.timeDefines.map((d, k) => d.startsWith(date) ? +s1.areas[0].pops[k] : -1).filter(x => x >= 0);
+                           return v.length ? Math.max(...v) : undefined; };
+    const short = new Set();
+    s0.timeDefines.forEach((d, k) => { const date = d.slice(0, 10); short.add(date); put(date, s0.areas[0].weatherCodes[k], pDay(date)); });
+    // それより先:週間予報
     const wk = j[1].timeSeries[0], wt = j[1].timeSeries[1];
-    wk.timeDefines.forEach((d, k) => put(d.slice(0, 10), wk.areas[0].weatherCodes[k], wk.areas[0].pops[k]));
+    wk.timeDefines.forEach((d, k) => { const date = d.slice(0, 10);
+      if (!short.has(date)) put(date, wk.areas[0].weatherCodes[k], wk.areas[0].pops[k]);
+      else if (pDay(date) === undefined) put(date, null, wk.areas[0].pops[k]); });   // 短期予報に確率がない日は週間予報の確率
     wt.timeDefines.forEach((d, k) => { const x = days.find(y => y.t === d.slice(0, 10)); if (!x) return;
       const a = wt.areas[0]; if (a.tempsMin[k] !== "") x.mn = +a.tempsMin[k]; if (a.tempsMax[k] !== "") x.mx = +a.tempsMax[k]; });
   } catch (e) { /* 気象庁が取れなければ Open-Meteo のまま */ }
