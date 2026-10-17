@@ -78,11 +78,12 @@ function draw() {
     return `<div class="row"><div class="n">${name}<small>${SUB[u]}</small></div><div class="bar"><i style="width:${p}%;--c:${c}"></i>${ticks(u, a, b).map(f => `<b style="left:${f * 100}%"></b>`).join("")}</div><div class="pct">${p.toFixed(1)}%</div><div class="left">${fmtLeft(b - now, u)}</div></div>`;
   }).join("");
   const t0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  document.getElementById("wrap").innerHTML += EVENTS.map(e => {
+  const sorted = [...EVENTS].sort((a, b) => ((a.date < t0) - (b.date < t0)) || (a.date - b.date));   // 終わったものは一番下へ
+  document.getElementById("wrap").innerHTML += sorted.map(e => {
     const days = Math.round((e.date - t0) / 86400000);
     const w = `${e.date.getMonth() + 1}月${e.date.getDate()}日(${"日月火水木金土"[e.date.getDay()]})`;
     const wk = days >= 7 ? `・あと${Math.floor(days / 7)}週間` : "";   // 試験の名前の横に「何月何日・あと何週間」
-    return days < 0 ? `<div class="cd"><div class="n">${e.name}<small>${w}</small></div><div class="u">終わりました</div>${e.memo ? `<div class="memo">${e.memo}</div>` : ""}</div>`
+    return days < 0 ? `<div class="cd" style="opacity:.45"><div class="n">${e.name}<small>${w}</small></div><div class="u">終わりました</div>${e.memo ? `<div class="memo">${e.memo}</div>` : ""}</div>`
       : `<div class="cd"><div class="n">${e.name}<small>${w}${wk}</small></div><div class="d">${days === 0 ? "今日" : days}</div><div class="u">${days === 0 ? "" : "日後"}</div>${e.memo ? `<div class="memo">${e.memo}</div>` : ""}</div>`;
   }).join("");
   document.getElementById("foot").textContent = born ? `人生は ${LIFE}歳までで計算` : "";
