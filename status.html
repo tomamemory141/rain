@@ -109,7 +109,7 @@ function stack(panels) {
   ticks.forEach(t => { svg += `<line x1="${X(t).toFixed(1)}" x2="${X(t).toFixed(1)}" y1="0" y2="${PH * panels.length}" stroke="rgba(20,40,60,.07)"/>`; });
   panels.forEach((p, k) => {
     const y0 = k * PH, top = y0 + 20, bot = y0 + PH - 6;
-    const vals = p.pts.map(x => x.val).concat(p.tgt != null ? [p.tgt] : []);
+    const vals = p.pts.map(x => x.val);
     let lo = Math.min(...vals), hi = Math.max(...vals);
     const pad = Math.max((hi - lo) * 0.1, 0.2); lo -= pad; hi += pad;
     const Y = v => top + (hi - v) / (hi - lo) * (bot - top);
@@ -120,7 +120,8 @@ function stack(panels) {
     svg += `<text x="${L}" y="${y0 + 14}" style="fill:${p.color};font-weight:700;font-size:12px">${p.title} ${f(last.val)}${p.unit}</text>`;
     svg += `<text x="${Wd - R}" y="${y0 + 14}" text-anchor="end">${p.tgt != null ? `目標 ${p.tgt}${p.unit}・` : ""}${first.label}から ${diff > 0 ? "+" : ""}${diff.toFixed(1)}${p.unit}</text>`;
     [lo + pad, hi - pad].forEach(v => { svg += `<text x="${L - 5}" y="${(Y(v) + 3).toFixed(1)}" text-anchor="end">${f(v)}</text>`; });
-    if (p.tgt != null) svg += `<line x1="${L}" x2="${Wd - R}" y1="${Y(p.tgt).toFixed(1)}" y2="${Y(p.tgt).toFixed(1)}" stroke="#0a9e72" stroke-width="1.4" stroke-dasharray="5 4"/>`;
+    if (p.tgt != null && p.tgt >= lo && p.tgt <= hi) svg += `<line x1="${L}" x2="${Wd - R}" y1="${Y(p.tgt).toFixed(1)}" y2="${Y(p.tgt).toFixed(1)}" stroke="#0a9e72" stroke-width="1.4" stroke-dasharray="5 4"/>`;
+    else if (p.tgt != null) svg += `<text style="fill:#0a9e72;font-weight:700" x="${Wd - R}" y="${p.tgt < lo ? bot + 2 : top + 2}" text-anchor="end">目標 ${p.tgt}${p.unit} ${p.tgt < lo ? "↓" : "↑"}</text>`;
     p.pts.forEach(x => { svg += `<circle cx="${X(x.dt.getTime()).toFixed(1)}" cy="${Y(x.val).toFixed(1)}" r="1.8" fill="${p.color}" opacity=".35"/>`; });
     const sm = smooth(p.pts);
     svg += `<path d="${sm.map((x, i) => `${i ? "L" : "M"}${X(x.dt.getTime()).toFixed(1)},${Y(x.val).toFixed(1)}`).join(" ")}" fill="none" stroke="${p.color}" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round"/>`;
