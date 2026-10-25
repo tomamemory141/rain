@@ -6,7 +6,7 @@
 <title>ステータス</title>
 <style>
 /* 体重が目標までどれだけ進んだかを棒で、体重・BMI・体脂肪率・筋肉量の履歴を、1つの表に重ねた折れ線で出す。
-   数字はアドレスで渡す: w=今の体重 s=はじめの体重 g=目標 sf,gf=体脂肪率のはじめ・目標 sm,gm=筋肉量のはじめ・目標 ht=身長(cm) d=測定日
+   数字はアドレスで渡す: w=今の体重 s=はじめの体重 g=目標 sf,gf=体脂肪率のはじめ・目標 sm,gm=筋肉量のはじめ・目標 ht=身長(cm) d=測定日 a=アドバイス(「|」で区切ると改行) ad=アドバイスの日付
    h=体重の履歴 / f=体脂肪率の履歴 / m=筋肉量の履歴(どれも 9/10:74.9,9/11:75.5 … の形)。BMIは体重と身長から計算する */
 :root { --fg: #1b2733; --sub: #5d6b79; --font: -apple-system, "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif; color-scheme: light }
 * { box-sizing: border-box }
@@ -32,6 +32,10 @@ body { background: #fff; color: var(--fg); font-family: var(--font); padding: 6p
 .lg i { width: 10px; height: 10px; border-radius: 50% }
 .lg .big { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right }
 .lg small { grid-column: 2 / -1; font-size: 10px; color: var(--sub); line-height: 1.3 }
+.adv { background: #fff7e6; border-radius: 12px; border-left: 5px solid #ff9f0a; padding: 8px 12px 4px }
+.adv b { font-size: 13px }
+.adv small { font-size: 10px; color: var(--sub); margin-left: 8px }
+.adv ul { margin: 6px 0 4px; padding-left: 18px; font-size: 13px; line-height: 1.6 }
 .foot { font-size: 10px; color: var(--sub); text-align: right; margin-top: 4px }
 </style>
 </head>
@@ -110,6 +114,10 @@ function build() {
     { title: "体脂肪率", pts: series("f"), color: "#f97316", unit: "%", dec: 1, tgt: num("gf") },
     { title: "筋肉量", pts: series("m"), color: "#a855f7", unit: "kg", dec: 1, tgt: num("gm") }
   ]));
+  if (q.get("a")) {
+    const lines = q.get("a").split("|").map(t => t.trim()).filter(Boolean).map(t => `<li>${t.replace(/[<>&]/g, "")}</li>`).join("");
+    html.push(`<div class="adv"><b>アドバイス</b>${q.get("ad") ? `<small>${q.get("ad")} 時点</small>` : ""}<ul>${lines}</ul></div>`);
+  }
   return html.join("");
 }
 const draw = () => { document.getElementById("wrap").innerHTML = build(); };
