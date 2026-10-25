@@ -121,7 +121,6 @@ function stack(panels) {
     svg += `<text x="${Wd - R}" y="${y0 + 14}" text-anchor="end">${p.tgt != null ? `目標 ${p.tgt}${p.unit}・` : ""}${first.label}から ${diff > 0 ? "+" : ""}${diff.toFixed(1)}${p.unit}</text>`;
     [lo + pad, hi - pad].forEach(v => { svg += `<text x="${L - 5}" y="${(Y(v) + 3).toFixed(1)}" text-anchor="end">${f(v)}</text>`; });
     if (p.tgt != null && p.tgt >= lo && p.tgt <= hi) svg += `<line x1="${L}" x2="${Wd - R}" y1="${Y(p.tgt).toFixed(1)}" y2="${Y(p.tgt).toFixed(1)}" stroke="#0a9e72" stroke-width="1.4" stroke-dasharray="5 4"/>`;
-    else if (p.tgt != null) svg += `<text style="fill:#0a9e72;font-weight:700" x="${Wd - R}" y="${p.tgt < lo ? bot + 2 : top + 2}" text-anchor="end">目標 ${p.tgt}${p.unit} ${p.tgt < lo ? "↓" : "↑"}</text>`;
     p.pts.forEach(x => { svg += `<circle cx="${X(x.dt.getTime()).toFixed(1)}" cy="${Y(x.val).toFixed(1)}" r="1.8" fill="${p.color}" opacity=".35"/>`; });
     const sm = smooth(p.pts);
     svg += `<path d="${sm.map((x, i) => `${i ? "L" : "M"}${X(x.dt.getTime()).toFixed(1)},${Y(x.val).toFixed(1)}`).join(" ")}" fill="none" stroke="${p.color}" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round"/>`;
