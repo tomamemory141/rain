@@ -32,10 +32,8 @@ body { background: #fff; color: var(--fg); font-family: var(--font); padding: 6p
 .lg i { width: 10px; height: 10px; border-radius: 50% }
 .lg .big { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right }
 .lg small { grid-column: 2 / -1; font-size: 10px; color: var(--sub); line-height: 1.3 }
-.adv { background: #fff7e6; border-radius: 12px; border-left: 5px solid #ff9f0a; padding: 8px 12px 4px }
-.adv b { font-size: 13px }
-.adv small { font-size: 10px; color: var(--sub); margin-left: 8px }
-.adv ul { margin: 6px 0 4px; padding-left: 18px; font-size: 13px; line-height: 1.6 }
+.adv { background: #fff7e6; border-radius: 12px; border-left: 5px solid #ff9f0a; padding: 8px 12px; font-size: 15px; font-weight: 700; line-height: 1.5 }
+.adv small { font-size: 10px; font-weight: 400; color: var(--sub); margin-left: 8px; white-space: nowrap }
 .foot { font-size: 10px; color: var(--sub); text-align: right; margin-top: 4px }
 </style>
 </head>
@@ -99,6 +97,7 @@ function overlay(lines) {
 
 function build() {
   const html = [`<div class="cap">体のステータス</div>`];
+  if (q.get("a")) html.push(`<div class="adv">💡 <span>${q.get("a").split("|").join(" ").replace(/[<>&]/g, "")}</span>${q.get("ad") ? `<small>${q.get("ad")}</small>` : ""}</div>`);
   const goalRow = (name, now_, start, goal, unit, color) => {
     if (now_ == null || start == null || goal == null) return;
     const up = goal > start, p = clamp((now_ - start) / (goal - start) * 100), rest = up ? goal - now_ : now_ - goal, done = rest <= 0;
@@ -114,10 +113,6 @@ function build() {
     { title: "体脂肪率", pts: series("f"), color: "#f97316", unit: "%", dec: 1, tgt: num("gf") },
     { title: "筋肉量", pts: series("m"), color: "#a855f7", unit: "kg", dec: 1, tgt: num("gm") }
   ]));
-  if (q.get("a")) {
-    const lines = q.get("a").split("|").map(t => t.trim()).filter(Boolean).map(t => `<li>${t.replace(/[<>&]/g, "")}</li>`).join("");
-    html.push(`<div class="adv"><b>アドバイス</b>${q.get("ad") ? `<small>${q.get("ad")} 時点</small>` : ""}<ul>${lines}</ul></div>`);
-  }
   return html.join("");
 }
 const draw = () => { document.getElementById("wrap").innerHTML = build(); };
