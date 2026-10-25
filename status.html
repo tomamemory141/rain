@@ -6,7 +6,7 @@
 <title>ステータス</title>
 <style>
 /* 体重が目標までどれだけ進んだかを棒で、体重・BMI・体脂肪率・筋肉量の履歴を、1つの表に重ねた折れ線で出す。
-   数字はアドレスで渡す: w=今の体重 s=はじめの体重 g=目標 sf,gf=体脂肪率のはじめ・目標 sm,gm=筋肉量のはじめ・目標 ht=身長(cm) d=測定日 a=アドバイス(「|」で区切ると改行) ad=アドバイスの日付
+   数字はアドレスで渡す: w=今の体重 s=はじめの体重 g=目標 sf,gf=体脂肪率のはじめ・目標 sm,gm=筋肉量のはじめ・目標 ht=身長(cm) d=測定日 vl=内臓脂肪レベル a=アドバイス(「|」で区切ると改行) ad=アドバイスの日付
    h=体重の履歴 / f=体脂肪率の履歴 / m=筋肉量の履歴(どれも 9/10:74.9,9/11:75.5 … の形)。BMIは体重と身長から計算する */
 :root { --fg: #1b2733; --sub: #5d6b79; --font: -apple-system, "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif; color-scheme: light }
 * { box-sizing: border-box }
@@ -38,6 +38,7 @@ body { background: #fff; color: var(--fg); font-family: var(--font); padding: 6p
 .adv { background: #fff7e6; border-radius: 12px; border-left: 5px solid #ff9f0a; padding: 6px 12px 6px 8px; font-size: 15px; font-weight: 700; line-height: 1.5; display: flex; align-items: center; gap: 10px }
 .adv .score { text-align: center; line-height: 1; padding-right: 10px; border-right: 1px solid rgba(255,159,10,.4); white-space: nowrap }
 .adv .score b { font-size: 30px; font-weight: 800; color: #e07b00; font-variant-numeric: tabular-nums }
+.adv .score .lbl { font-size: 9px; font-weight: 400; color: var(--sub); margin-top: 2px }
 .adv .score small { font-size: 11px; margin: 0 0 0 1px; color: #e07b00 }
 .adv small { font-size: 10px; font-weight: 400; color: var(--sub); margin-left: 8px; white-space: nowrap }
 .foot { font-size: 10px; color: var(--sub); text-align: right; margin-top: 4px }
@@ -137,18 +138,23 @@ function stack(panels) {
   return `<div class="stack">${svg}</svg></div>`;
 }
 
-// 総合点: 3つの目標への進み具合(0〜100%)の平均。3つとも目標に届いたら100点
+// 体の点数(100点満点): 今の体そのものを、BMI・体脂肪率・内臓脂肪レベルの3つで採点して平均する。
+//  BMI: 22を満点として、離れるほど減点(1離れるごとに-10点)
+//  体脂肪率: 17%まで満点、超えた分は1%ごとに-8点(男性の標準は11〜21%くらい)
+//  内臓脂肪レベル(vl): 9まで満点(標準は1〜9)、超えた分は1ごとに-10点
 const lastVal = k => { const a = series(k); return a.length ? a[a.length - 1].val : null; };
-const progress = (now_, start, goal) => (now_ == null || start == null || goal == null || start === goal) ? null : clamp((now_ - start) / (goal - start) * 100);
 function totalScore() {
-  const ps = [progress(w, s, g), progress(lastVal("f"), num("sf"), num("gf")), progress(lastVal("m"), num("sm"), num("gm"))].filter(p => p !== null);
-  return ps.length ? Math.round(ps.reduce((a, b) => a + b, 0) / ps.length) : null;
+  const items = [];
+  if (w !== null) items.push(clamp(100 - 10 * Math.abs(bmi(w) - 22)));
+  const f = lastVal("f"); if (f !== null) items.push(clamp(100 - 8 * Math.max(0, f - 17)));
+  const vl = num("vl"); if (vl !== null) items.push(clamp(100 - 10 * Math.max(0, vl - 9)));
+  return items.length ? Math.round(items.reduce((x, y) => x + y, 0) / items.length) : null;
 }
 
 function build() {
   const html = [`<div class="cap"><span>体のステータス</span><a class="btn" href="https://tanitafit.jp/client/fitplace/member/dashboard" target="_blank" rel="noopener">タニタフィットを開く ↗</a></div>`];
   const sc = totalScore();
-  if (q.get("a") || sc !== null) html.push(`<div class="adv">${sc !== null ? `<div class="score"><b>${sc}</b><small>点</small></div>` : ""}<div class="msg">💡 <span>${(q.get("a") || "").split("|").join(" ").replace(/[<>&]/g, "")}</span>${q.get("ad") ? `<small>${q.get("ad")}</small>` : ""}</div></div>`);
+  if (q.get("a") || sc !== null) html.push(`<div class="adv">${sc !== null ? `<div class="score"><b>${sc}</b><small>点</small><div class="lbl">体の点数</div></div>` : ""}<div class="msg">💡 <span>${(q.get("a") || "").split("|").join(" ").replace(/[<>&]/g, "")}</span>${q.get("ad") ? `<small>${q.get("ad")}</small>` : ""}</div></div>`);
   const rowsHtml = [];
   const goalRow = (name, now_, start, goal, unit, color) => {
     if (now_ == null || start == null || goal == null) return;
