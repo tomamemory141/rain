@@ -95,6 +95,42 @@ function overlay(lines) {
   return `<div class="stack">${svg}<div class="legend">${legend}</div><div class="hint">名前をタップすると、その線を出したり消したりできます</div></div>`;
 }
 
+// 体重・体脂肪率・筋肉量を、人生グラフのように区切って縦にならべる(日付は同じ位置にそろえる。目標は点線)
+function stack(panels) {
+  panels = panels.filter(p => p.pts.length >= 2);
+  if (!panels.length) return "";
+  const all = panels.flatMap(p => p.pts.map(x => x.dt.getTime()));
+  const t0 = Math.min(...all), t1 = Math.max(...all);
+  const Wd = 520, L = 36, R = 14, PH = 74, AX = 18, H = PH * panels.length + AX;
+  const X = t => L + (t1 === t0 ? 0.5 : (t - t0) / (t1 - t0)) * (Wd - L - R);
+  let svg = `<svg viewBox="0 0 ${Wd} ${H}">`;
+  const DAY = 86400000, ticks = [];
+  for (let t = t0; t <= t1 + 1; t += 7 * DAY) ticks.push(t);
+  ticks.forEach(t => { svg += `<line x1="${X(t).toFixed(1)}" x2="${X(t).toFixed(1)}" y1="0" y2="${PH * panels.length}" stroke="rgba(20,40,60,.07)"/>`; });
+  panels.forEach((p, k) => {
+    const y0 = k * PH, top = y0 + 20, bot = y0 + PH - 6;
+    const vals = p.pts.map(x => x.val).concat(p.tgt != null ? [p.tgt] : []);
+    let lo = Math.min(...vals), hi = Math.max(...vals);
+    const pad = Math.max((hi - lo) * 0.1, 0.2); lo -= pad; hi += pad;
+    const Y = v => top + (hi - v) / (hi - lo) * (bot - top);
+    const f = v => v.toFixed(1);
+    const first = p.pts[0], last = p.pts[p.pts.length - 1], diff = last.val - first.val;
+    if (k) svg += `<line x1="0" x2="${Wd}" y1="${y0}" y2="${y0}" stroke="rgba(20,40,60,.16)"/>`;
+    svg += `<rect x="0" y="${y0 + 5}" width="4" height="${PH - 10}" rx="2" fill="${p.color}"/>`;
+    svg += `<text x="${L}" y="${y0 + 14}" style="fill:${p.color};font-weight:700;font-size:12px">${p.title} ${f(last.val)}${p.unit}</text>`;
+    svg += `<text x="${Wd - R}" y="${y0 + 14}" text-anchor="end">${p.tgt != null ? `目標 ${p.tgt}${p.unit}・` : ""}${first.label}から ${diff > 0 ? "+" : ""}${diff.toFixed(1)}${p.unit}</text>`;
+    [lo + pad, hi - pad].forEach(v => { svg += `<text x="${L - 5}" y="${(Y(v) + 3).toFixed(1)}" text-anchor="end">${f(v)}</text>`; });
+    if (p.tgt != null) svg += `<line x1="${L}" x2="${Wd - R}" y1="${Y(p.tgt).toFixed(1)}" y2="${Y(p.tgt).toFixed(1)}" stroke="#0a9e72" stroke-width="1.4" stroke-dasharray="5 4"/>`;
+    p.pts.forEach(x => { svg += `<circle cx="${X(x.dt.getTime()).toFixed(1)}" cy="${Y(x.val).toFixed(1)}" r="1.8" fill="${p.color}" opacity=".35"/>`; });
+    const sm = smooth(p.pts);
+    svg += `<path d="${sm.map((x, i) => `${i ? "L" : "M"}${X(x.dt.getTime()).toFixed(1)},${Y(x.val).toFixed(1)}`).join(" ")}" fill="none" stroke="${p.color}" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round"/>`;
+    const l = sm[sm.length - 1];
+    svg += `<circle cx="${X(l.dt.getTime()).toFixed(1)}" cy="${Y(l.val).toFixed(1)}" r="4.2" fill="${p.color}" stroke="#fff" stroke-width="1.6"/>`;
+  });
+  ticks.forEach(t => { const d = new Date(t); svg += `<text x="${X(t).toFixed(1)}" y="${H - 5}" text-anchor="middle">${d.getMonth() + 1}/${d.getDate()}</text>`; });
+  return `<div class="stack">${svg}</svg></div>`;
+}
+
 function build() {
   const html = [`<div class="cap">体のステータス</div>`];
   if (q.get("a")) html.push(`<div class="adv">💡 <span>${q.get("a").split("|").join(" ").replace(/[<>&]/g, "")}</span>${q.get("ad") ? `<small>${q.get("ad")}</small>` : ""}</div>`);
@@ -107,11 +143,10 @@ function build() {
   goalRow("体重", w, s, g, "kg", "#2bb88a");
   goalRow("体脂肪率", lastOf("f"), num("sf"), num("gf"), "%", "#f97316");
   goalRow("筋肉量", lastOf("m"), num("sm"), num("gm"), "kg", "#a855f7");
-  html.push(overlay([
-    { title: "体重", pts: W, color: "#2bb88a", unit: "kg", dec: 1, tgt: g },
-    { title: "BMI", pts: W.map(p => ({ ...p, val: bmi(p.val) })), color: "#3b82f6", unit: "", dec: 1, tgt: g != null ? +bmi(g).toFixed(1) : null },
-    { title: "体脂肪率", pts: series("f"), color: "#f97316", unit: "%", dec: 1, tgt: num("gf") },
-    { title: "筋肉量", pts: series("m"), color: "#a855f7", unit: "kg", dec: 1, tgt: num("gm") }
+  html.push(stack([
+    { title: "体重", pts: W, color: "#2bb88a", unit: "kg", tgt: g },
+    { title: "体脂肪率", pts: series("f"), color: "#f97316", unit: "%", tgt: num("gf") },
+    { title: "筋肉量", pts: series("m"), color: "#a855f7", unit: "kg", tgt: num("gm") }
   ]));
   return html.join("");
 }
