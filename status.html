@@ -13,7 +13,9 @@
 html, body { margin: 0 }
 body { background: #fff; color: var(--fg); font-family: var(--font); padding: 6px 12px; min-height: 100vh }
 .wrap { max-width: 560px; display: grid; gap: 6px; background: #f3f6fa; border-radius: 16px; padding: 8px 14px 10px }
-.cap { font-size: 12px; color: var(--sub); padding-bottom: 4px; border-bottom: 1px solid rgba(20,40,60,.14) }
+.cap { font-size: 12px; color: var(--sub); padding-bottom: 4px; border-bottom: 1px solid rgba(20,40,60,.14); display: flex; justify-content: space-between; align-items: center }
+.btn { font-size: 11px; font-weight: 700; color: #fff; background: #2bb88a; padding: 3px 10px; border-radius: 12px; text-decoration: none }
+.btn:active { opacity: .7 }
 .rows { display: grid; gap: 0 }
 .row { display: grid; grid-template-columns: 124px 1fr 42px 112px; align-items: center; gap: 6px; padding: 3px 0; border-top: 1px solid rgba(20,40,60,.14) }
 .row .n { font-size: 14px; font-weight: 700; white-space: nowrap; line-height: 1.15 }
@@ -133,7 +135,7 @@ function stack(panels) {
 }
 
 function build() {
-  const html = [`<div class="cap">体のステータス</div>`];
+  const html = [`<div class="cap"><span>体のステータス</span><a class="btn" href="https://tanitafit.jp/client/fitplace/member/dashboard" target="_blank" rel="noopener">タニタフィットを開く ↗</a></div>`];
   if (q.get("a")) html.push(`<div class="adv">💡 <span>${q.get("a").split("|").join(" ").replace(/[<>&]/g, "")}</span>${q.get("ad") ? `<small>${q.get("ad")}</small>` : ""}</div>`);
   const rowsHtml = [];
   const goalRow = (name, now_, start, goal, unit, color) => {
