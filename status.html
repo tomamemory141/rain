@@ -14,7 +14,7 @@ html, body { margin: 0 }
 body { background: #fff; color: var(--fg); font-family: var(--font); padding: 6px 12px; min-height: 100vh }
 .wrap { max-width: 560px; display: grid; gap: 8px; background: #f3f6fa; border-radius: 16px; padding: 8px 14px 10px }
 .cap { font-size: 12px; color: var(--sub); padding-bottom: 4px; border-bottom: 1px solid rgba(20,40,60,.14) }
-.row { display: grid; grid-template-columns: 112px 1fr 56px 112px; align-items: center; gap: 8px }
+.row { display: grid; grid-template-columns: 124px 1fr 46px 118px; align-items: center; gap: 8px }
 .row .n { font-size: 15px; font-weight: 700; white-space: nowrap }
 .row .n small { display: block; font-size: 11px; font-weight: 400; color: var(--sub) }
 .row .pct { font-size: 15px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 700 }
@@ -98,7 +98,7 @@ function build() {
   const goalRow = (name, now_, start, goal, unit, color) => {
     if (now_ == null || start == null || goal == null) return;
     const up = goal > start, p = clamp((now_ - start) / (goal - start) * 100), rest = up ? goal - now_ : now_ - goal, done = rest <= 0;
-    html.push(`<div class="row"><div class="n">${name}<small>${now_.toFixed(1)}${unit} → 目標${goal}${unit}</small></div><div class="bar"><i style="width:${p}%;--c:${color}"></i></div><div class="pct">${p.toFixed(0)}%</div><div class="left">${done ? "目標達成!" : `あと ${rest.toFixed(1)}${unit}`}</div></div>`);
+    html.push(`<div class="row"><div class="n">${name}<small>はじめ${start}${unit} → 今${now_.toFixed(1)}${unit}</small></div><div class="bar"><i style="width:${p}%;--c:${color}"></i></div><div class="pct">${p.toFixed(0)}%</div><div class="left">${done ? "目標達成!" : `目標${goal}${unit} あと${rest.toFixed(1)}`}</div></div>`);
   };
   const lastOf = k => { const a = series(k); return a.length ? a[a.length - 1].val : null; };
   goalRow("体重", w, s, g, "kg", "#2bb88a");
