@@ -26,6 +26,9 @@ body { background: #fff; color: var(--fg); font-family: var(--font); padding: 6p
 .stack text { font-family: var(--font); fill: var(--sub); font-size: 10px }
 .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; padding: 2px 6px 8px }
 .lg { display: grid; grid-template-columns: 10px auto 1fr; grid-template-rows: auto auto; align-items: center; gap: 0 6px; font-size: 12px }
+.lg { cursor: pointer; user-select: none }
+.lg.off { opacity: .35 }
+.hint { font-size: 10px; color: var(--sub); text-align: center; padding-bottom: 6px }
 .lg i { width: 10px; height: 10px; border-radius: 50% }
 .lg .big { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right }
 .lg small { grid-column: 2 / -1; font-size: 10px; color: var(--sub); line-height: 1.3 }
@@ -55,12 +58,16 @@ const bmi = kg => kg / ((ht / 100) ** 2);
 const W = series("h");
 
 // 4つの線を、1つの表に重ねる(単位がちがうので、それぞれの最小〜最大を同じ高さにそろえて、形を比べる)
+// 見やすくするため、線は「3回分の平均」でなめらかにして、実際の測定は小さな点で残す。下の名前をタップすると線を出したり消したりできる。
+const on = { "体重": true, "BMI": false, "体脂肪率": true, "筋肉量": true };
+const smooth = pts => pts.map((p, i) => { const a = pts.slice(Math.max(0, i - 2), i + 1); return { ...p, val: a.reduce((t, x) => t + x.val, 0) / a.length }; });
+
 function overlay(lines) {
   lines = lines.filter(p => p.pts.length >= 2);
   if (!lines.length) return "";
   const all = lines.flatMap(p => p.pts.map(x => x.dt.getTime()));
   const t0 = Math.min(...all), t1 = Math.max(...all);
-  const Wd = 520, H = 250, L = 30, R = 14, T = 12, B = 24;
+  const Wd = 520, H = 250, L = 34, R = 14, T = 12, B = 24;
   const X = t => L + (t1 === t0 ? 0.5 : (t - t0) / (t1 - t0)) * (Wd - L - R);
   const Y = n => T + (1 - n) * (H - T - B);
   let svg = `<svg viewBox="0 0 ${Wd} ${H}">`;
@@ -68,34 +75,41 @@ function overlay(lines) {
   for (let t = t0; t <= t1 + 1; t += 7 * DAY) { const d = new Date(t); svg += `<line x1="${X(t).toFixed(1)}" x2="${X(t).toFixed(1)}" y1="${T}" y2="${H - B}" stroke="rgba(20,40,60,.08)"/><text x="${X(t).toFixed(1)}" y="${H - 8}" text-anchor="middle">${d.getMonth() + 1}/${d.getDate()}</text>`; }
   [0, .5, 1].forEach(n => { svg += `<line x1="${L}" x2="${Wd - R}" y1="${Y(n)}" y2="${Y(n)}" stroke="rgba(20,40,60,.1)"/>`; });
   svg += `<text x="${L - 4}" y="${Y(1) + 3}" text-anchor="end">高い</text><text x="${L - 4}" y="${Y(0) + 3}" text-anchor="end">低い</text>`;
-  [...lines].sort((a, b) => !!b.halo - !!a.halo).forEach(p => {
+  lines.forEach(p => {
     const vals = p.pts.map(x => x.val), lo = Math.min(...vals), hi = Math.max(...vals), span = hi - lo || 1;
     p.lo = lo; p.hi = hi;
-    const N = v => (v - lo) / span;
-    svg += `<path d="${p.pts.map((x, i) => `${i ? "L" : "M"}${X(x.dt.getTime()).toFixed(1)},${Y(N(x.val)).toFixed(1)}`).join(" ")}" fill="none" stroke="${p.color}" stroke-width="${p.halo ? 8 : 2.4}" stroke-linejoin="round" stroke-linecap="round" opacity="${p.halo ? .3 : .92}"/>`;
-    const l = p.pts[p.pts.length - 1];
-    if (!p.halo) svg += `<circle cx="${X(l.dt.getTime()).toFixed(1)}" cy="${Y(N(l.val)).toFixed(1)}" r="4.5" fill="${p.color}" stroke="#fff" stroke-width="1.6"/>`;
+    if (!on[p.title]) return;
+    const N = v => (v - lo) / span, sm = smooth(p.pts);
+    p.pts.forEach(x => { svg += `<circle cx="${X(x.dt.getTime()).toFixed(1)}" cy="${Y(N(x.val)).toFixed(1)}" r="2" fill="${p.color}" opacity=".35"/>`; });
+    svg += `<path d="${sm.map((x, i) => `${i ? "L" : "M"}${X(x.dt.getTime()).toFixed(1)},${Y(N(x.val)).toFixed(1)}`).join(" ")}" fill="none" stroke="${p.color}" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    const l = sm[sm.length - 1];
+    svg += `<circle cx="${X(l.dt.getTime()).toFixed(1)}" cy="${Y(N(l.val)).toFixed(1)}" r="5" fill="${p.color}" stroke="#fff" stroke-width="1.8"/>`;
   });
   svg += `</svg>`;
   const legend = lines.map(p => {
     const first = p.pts[0], last = p.pts[p.pts.length - 1], diff = last.val - first.val, f = v => v.toFixed(p.dec);
-    return `<div class="lg"><i style="background:${p.color}"></i><b>${p.title}</b><span class="big" style="color:${p.color}">${f(last.val)}${p.unit}</span><small>${first.label}から ${diff > 0 ? "+" : ""}${diff.toFixed(p.dec)}${p.unit}<br>幅 ${f(p.lo)}〜${f(p.hi)}${p.halo ? "(体重と同じ形)" : ""}</small></div>`;
+    return `<div class="lg${on[p.title] ? "" : " off"}" data-k="${p.title}"><i style="background:${p.color}"></i><b>${p.title}</b><span class="big" style="color:${p.color}">${f(last.val)}${p.unit}</span><small>${first.label}から ${diff > 0 ? "+" : ""}${diff.toFixed(p.dec)}${p.unit}・幅 ${f(p.lo)}〜${f(p.hi)}</small></div>`;
   }).join("");
-  return `<div class="stack">${svg}<div class="legend">${legend}</div></div>`;
+  return `<div class="stack">${svg}<div class="legend">${legend}</div><div class="hint">名前をタップすると、その線を出したり消したりできます</div></div>`;
 }
 
-const html = [`<div class="cap">体のステータス</div>`];
-if (w !== null && s !== null && g !== null) {
-  const p = clamp((s - w) / (s - g) * 100), diff = w - g;
-  html.push(`<div class="row"><div class="n">体重<small>${w}kg → 目標${g}kg</small></div><div class="bar"><i style="width:${p}%;--c:#6fd3b0"></i></div><div class="pct">${p.toFixed(0)}%</div><div class="left">${diff > 0 ? `あと ${diff.toFixed(1)}kg` : "目標達成!"}</div></div>`);
+function build() {
+  const html = [`<div class="cap">体のステータス</div>`];
+  if (w !== null && s !== null && g !== null) {
+    const p = clamp((s - w) / (s - g) * 100), diff = w - g;
+    html.push(`<div class="row"><div class="n">体重<small>${w}kg → 目標${g}kg</small></div><div class="bar"><i style="width:${p}%;--c:#6fd3b0"></i></div><div class="pct">${p.toFixed(0)}%</div><div class="left">${diff > 0 ? `あと ${diff.toFixed(1)}kg` : "目標達成!"}</div></div>`);
+  }
+  html.push(overlay([
+    { title: "体重", pts: W, color: "#2bb88a", unit: "kg", dec: 1 },
+    { title: "BMI", pts: W.map(p => ({ ...p, val: bmi(p.val) })), color: "#3b82f6", unit: "", dec: 1 },
+    { title: "体脂肪率", pts: series("f"), color: "#f97316", unit: "%", dec: 1 },
+    { title: "筋肉量", pts: series("m"), color: "#a855f7", unit: "kg", dec: 1 }
+  ]));
+  return html.join("");
 }
-html.push(overlay([
-  { title: "体重", pts: W, color: "#2bb88a", unit: "kg", dec: 1, ref: g, refLabel: g != null ? `目標 ${g}kg` : "", good: "down" },
-  { halo: true, title: "BMI", pts: W.map(p => ({ ...p, val: bmi(p.val) })), color: "#3b82f6", unit: "", dec: 1, ref: g != null ? bmi(g) : null, refLabel: g != null ? `目標 ${bmi(g).toFixed(1)}` : "", good: "down" },
-  { title: "体脂肪率", pts: series("f"), color: "#f97316", unit: "%", dec: 1, good: "down" },
-  { title: "筋肉量", pts: series("m"), color: "#a855f7", unit: "kg", dec: 1, good: "up" }
-]));
-document.getElementById("wrap").innerHTML = html.join("");
+const draw = () => { document.getElementById("wrap").innerHTML = build(); };
+document.addEventListener("click", e => { const el = e.target.closest(".lg"); if (el) { on[el.dataset.k] = !on[el.dataset.k]; draw(); } });
+draw();
 document.getElementById("foot").textContent = q.get("d") ? `${q.get("d")} の測定` : "";
 </script>
 </body>
