@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ステータス</title>
+<style>
+/* 体重と貯金が、目標までどれだけ進んだかを棒で出す。数字はアドレスで渡す(w=今の体重 s=はじめの体重 g=目標 f=体脂肪率 m=筋肉量 b=BMI d=測定日 / sv=貯金 sg=貯金の目標 / e=今月の出費 i=手取り) */
+:root { --fg: #1b2733; --sub: #5d6b79; --font: -apple-system, "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif; color-scheme: light }
+* { box-sizing: border-box }
+html, body { margin: 0 }
+body { background: #fff; color: var(--fg); font-family: var(--font); padding: 6px 12px; min-height: 100vh }
+.wrap { max-width: 560px; display: grid; gap: 8px; background: #f3f6fa; border-radius: 16px; padding: 8px 14px 10px }
+.cap { font-size: 12px; color: var(--sub); padding-bottom: 4px; border-bottom: 1px solid rgba(20,40,60,.14) }
+.row { display: grid; grid-template-columns: 112px 1fr 56px 112px; align-items: center; gap: 8px }
+.row .n { font-size: 15px; font-weight: 700; white-space: nowrap }
+.row .n small { display: block; font-size: 11px; font-weight: 400; color: var(--sub) }
+.row .pct { font-size: 15px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 700 }
+.bar { position: relative; height: 12px; border-radius: 7px; background: rgba(20,40,60,.09); overflow: hidden }
+.bar i { display: block; height: 100%; border-radius: 7px; background: var(--c); min-width: 3px }
+.left { font-size: 12px; color: var(--sub); white-space: nowrap }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; border-top: 1px solid rgba(20,40,60,.14); padding-top: 8px }
+.chip { background: #fff; border-radius: 10px; padding: 4px 10px; font-size: 11px; color: var(--sub) }
+.chip b { display: block; font-size: 16px; color: var(--fg); font-weight: 700 }
+.foot { font-size: 10px; color: var(--sub); text-align: right; margin-top: 4px }
+</style>
+</head>
+<body>
+<div class="wrap" id="wrap"></div>
+<div class="foot" id="foot"></div>
+<script>
+const q = new URLSearchParams(location.search);
+const num = k => (q.get(k) === null || q.get(k) === "" || isNaN(+q.get(k))) ? null : +q.get(k);
+const clamp = p => Math.min(100, Math.max(0, p));
+const yen = v => v >= 10000 ? (v / 10000).toFixed(v % 10000 ? 1 : 0).replace(/\.0$/, "") + "万円" : Math.round(v).toLocaleString() + "円";
+
+const rows = [];
+const w = num("w"), s = num("s"), g = num("g");
+if (w !== null && s !== null && g !== null) {
+  const p = clamp((s - w) / (s - g) * 100), diff = w - g;
+  rows.push({ name: "体重", sub: `${w}kg → 目標${g}kg`, p, left: diff > 0 ? `あと ${diff.toFixed(1)}kg` : "目標達成!", c: "#6fd3b0" });
+}
+const sv = num("sv"), sg = num("sg");
+if (sv !== null && sg) {
+  rows.push({ name: "貯金", sub: `${yen(sv)} → 目標${yen(sg)}`, p: clamp(sv / sg * 100), left: sv < sg ? `あと ${yen(sg - sv)}` : "目標達成!", c: "#ffd23f" });
+}
+const e = num("e"), inc = num("i");
+if (e !== null && inc) {
+  rows.push({ name: "今月の出費", sub: `${yen(e)} / 手取り${yen(inc)}`, p: clamp(e / inc * 100), left: `残り ${yen(Math.max(0, inc - e))}`, c: "#ff9f0a" });
+}
+
+const chips = [["体脂肪率", num("f"), "%"], ["筋肉量", num("m"), "kg"], ["BMI", num("b"), ""]].filter(c => c[1] !== null);
+document.getElementById("wrap").innerHTML = `<div class="cap">ステータス</div>` +
+  rows.map(r => `<div class="row"><div class="n">${r.name}<small>${r.sub}</small></div><div class="bar"><i style="width:${r.p}%;--c:${r.c}"></i></div><div class="pct">${r.p.toFixed(0)}%</div><div class="left">${r.left}</div></div>`).join("") +
+  (chips.length ? `<div class="chips">${chips.map(c => `<div class="chip">${c[0]}<b>${c[1]}${c[2]}</b></div>`).join("")}</div>` : "");
+document.getElementById("foot").textContent = q.get("d") ? `体重は ${q.get("d")} の測定` : "";
+</script>
+</body>
+</html>
