@@ -35,7 +35,10 @@ body { background: #fff; color: var(--fg); font-family: var(--font); padding: 6p
 .lg i { width: 10px; height: 10px; border-radius: 50% }
 .lg .big { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right }
 .lg small { grid-column: 2 / -1; font-size: 10px; color: var(--sub); line-height: 1.3 }
-.adv { background: #fff7e6; border-radius: 12px; border-left: 5px solid #ff9f0a; padding: 8px 12px; font-size: 15px; font-weight: 700; line-height: 1.5 }
+.adv { background: #fff7e6; border-radius: 12px; border-left: 5px solid #ff9f0a; padding: 6px 12px 6px 8px; font-size: 15px; font-weight: 700; line-height: 1.5; display: flex; align-items: center; gap: 10px }
+.adv .score { text-align: center; line-height: 1; padding-right: 10px; border-right: 1px solid rgba(255,159,10,.4); white-space: nowrap }
+.adv .score b { font-size: 30px; font-weight: 800; color: #e07b00; font-variant-numeric: tabular-nums }
+.adv .score small { font-size: 11px; margin: 0 0 0 1px; color: #e07b00 }
 .adv small { font-size: 10px; font-weight: 400; color: var(--sub); margin-left: 8px; white-space: nowrap }
 .foot { font-size: 10px; color: var(--sub); text-align: right; margin-top: 4px }
 </style>
@@ -134,9 +137,18 @@ function stack(panels) {
   return `<div class="stack">${svg}</svg></div>`;
 }
 
+// 総合点: 3つの目標への進み具合(0〜100%)の平均。3つとも目標に届いたら100点
+const lastVal = k => { const a = series(k); return a.length ? a[a.length - 1].val : null; };
+const progress = (now_, start, goal) => (now_ == null || start == null || goal == null || start === goal) ? null : clamp((now_ - start) / (goal - start) * 100);
+function totalScore() {
+  const ps = [progress(w, s, g), progress(lastVal("f"), num("sf"), num("gf")), progress(lastVal("m"), num("sm"), num("gm"))].filter(p => p !== null);
+  return ps.length ? Math.round(ps.reduce((a, b) => a + b, 0) / ps.length) : null;
+}
+
 function build() {
   const html = [`<div class="cap"><span>体のステータス</span><a class="btn" href="https://tanitafit.jp/client/fitplace/member/dashboard" target="_blank" rel="noopener">タニタフィットを開く ↗</a></div>`];
-  if (q.get("a")) html.push(`<div class="adv">💡 <span>${q.get("a").split("|").join(" ").replace(/[<>&]/g, "")}</span>${q.get("ad") ? `<small>${q.get("ad")}</small>` : ""}</div>`);
+  const sc = totalScore();
+  if (q.get("a") || sc !== null) html.push(`<div class="adv">${sc !== null ? `<div class="score"><b>${sc}</b><small>点</small></div>` : ""}<div class="msg">💡 <span>${(q.get("a") || "").split("|").join(" ").replace(/[<>&]/g, "")}</span>${q.get("ad") ? `<small>${q.get("ad")}</small>` : ""}</div></div>`);
   const rowsHtml = [];
   const goalRow = (name, now_, start, goal, unit, color) => {
     if (now_ == null || start == null || goal == null) return;
