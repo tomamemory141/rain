@@ -6,7 +6,7 @@
 <title>ステータス</title>
 <style>
 /* 体重が目標までどれだけ進んだかを棒で、体重・BMI・体脂肪率・筋肉量の履歴を、1つの表に重ねた折れ線で出す。
-   数字はアドレスで渡す: w=今の体重 s=はじめの体重 g=目標 ht=身長(cm) d=測定日
+   数字はアドレスで渡す: w=今の体重 s=はじめの体重 g=目標 sf,gf=体脂肪率のはじめ・目標 sm,gm=筋肉量のはじめ・目標 ht=身長(cm) d=測定日
    h=体重の履歴 / f=体脂肪率の履歴 / m=筋肉量の履歴(どれも 9/10:74.9,9/11:75.5 … の形)。BMIは体重と身長から計算する */
 :root { --fg: #1b2733; --sub: #5d6b79; --font: -apple-system, "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif; color-scheme: light }
 * { box-sizing: border-box }
@@ -88,22 +88,27 @@ function overlay(lines) {
   svg += `</svg>`;
   const legend = lines.map(p => {
     const first = p.pts[0], last = p.pts[p.pts.length - 1], diff = last.val - first.val, f = v => v.toFixed(p.dec);
-    return `<div class="lg${on[p.title] ? "" : " off"}" data-k="${p.title}"><i style="background:${p.color}"></i><b>${p.title}</b><span class="big" style="color:${p.color}">${f(last.val)}${p.unit}</span><small>${first.label}から ${diff > 0 ? "+" : ""}${diff.toFixed(p.dec)}${p.unit}・幅 ${f(p.lo)}〜${f(p.hi)}</small></div>`;
+    return `<div class="lg${on[p.title] ? "" : " off"}" data-k="${p.title}"><i style="background:${p.color}"></i><b>${p.title}</b><span class="big" style="color:${p.color}">${f(last.val)}${p.unit}</span><small>${p.tgt != null ? `目標 ${p.tgt}${p.unit}・` : ""}${first.label}から ${diff > 0 ? "+" : ""}${diff.toFixed(p.dec)}${p.unit}・幅 ${f(p.lo)}〜${f(p.hi)}</small></div>`;
   }).join("");
   return `<div class="stack">${svg}<div class="legend">${legend}</div><div class="hint">名前をタップすると、その線を出したり消したりできます</div></div>`;
 }
 
 function build() {
   const html = [`<div class="cap">体のステータス</div>`];
-  if (w !== null && s !== null && g !== null) {
-    const p = clamp((s - w) / (s - g) * 100), diff = w - g;
-    html.push(`<div class="row"><div class="n">体重<small>${w}kg → 目標${g}kg</small></div><div class="bar"><i style="width:${p}%;--c:#6fd3b0"></i></div><div class="pct">${p.toFixed(0)}%</div><div class="left">${diff > 0 ? `あと ${diff.toFixed(1)}kg` : "目標達成!"}</div></div>`);
-  }
+  const goalRow = (name, now_, start, goal, unit, color) => {
+    if (now_ == null || start == null || goal == null) return;
+    const up = goal > start, p = clamp((now_ - start) / (goal - start) * 100), rest = up ? goal - now_ : now_ - goal, done = rest <= 0;
+    html.push(`<div class="row"><div class="n">${name}<small>${now_.toFixed(1)}${unit} → 目標${goal}${unit}</small></div><div class="bar"><i style="width:${p}%;--c:${color}"></i></div><div class="pct">${p.toFixed(0)}%</div><div class="left">${done ? "目標達成!" : `あと ${rest.toFixed(1)}${unit}`}</div></div>`);
+  };
+  const lastOf = k => { const a = series(k); return a.length ? a[a.length - 1].val : null; };
+  goalRow("体重", w, s, g, "kg", "#2bb88a");
+  goalRow("体脂肪率", lastOf("f"), num("sf"), num("gf"), "%", "#f97316");
+  goalRow("筋肉量", lastOf("m"), num("sm"), num("gm"), "kg", "#a855f7");
   html.push(overlay([
-    { title: "体重", pts: W, color: "#2bb88a", unit: "kg", dec: 1 },
-    { title: "BMI", pts: W.map(p => ({ ...p, val: bmi(p.val) })), color: "#3b82f6", unit: "", dec: 1 },
-    { title: "体脂肪率", pts: series("f"), color: "#f97316", unit: "%", dec: 1 },
-    { title: "筋肉量", pts: series("m"), color: "#a855f7", unit: "kg", dec: 1 }
+    { title: "体重", pts: W, color: "#2bb88a", unit: "kg", dec: 1, tgt: g },
+    { title: "BMI", pts: W.map(p => ({ ...p, val: bmi(p.val) })), color: "#3b82f6", unit: "", dec: 1, tgt: g != null ? +bmi(g).toFixed(1) : null },
+    { title: "体脂肪率", pts: series("f"), color: "#f97316", unit: "%", dec: 1, tgt: num("gf") },
+    { title: "筋肉量", pts: series("m"), color: "#a855f7", unit: "kg", dec: 1, tgt: num("gm") }
   ]));
   return html.join("");
 }
