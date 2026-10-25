@@ -162,15 +162,15 @@ function build() {
     rowsHtml.push(`<div class="row"><div class="n">${name}<small>はじめ${start}${unit} → 今${now_.toFixed(1)}${unit}</small></div><div class="bar"><i style="width:${p}%;--c:${color}"></i></div><div class="pct">${p.toFixed(0)}%</div><div class="left">${done ? "目標達成!" : `目標${goal}${unit} あと${rest.toFixed(1)}`}</div></div>`);
   };
   const lastOf = k => { const a = series(k); return a.length ? a[a.length - 1].val : null; };
-  goalRow("体重", w, s, g, "kg", "#2bb88a");
-  goalRow("体脂肪率", lastOf("f"), num("sf"), num("gf"), "%", "#f97316");
-  goalRow("筋肉量", lastOf("m"), num("sm"), num("gm"), "kg", "#a855f7");
+  goalRow("体重", w, s, g, "kg", "#222b36");
+  goalRow("体脂肪率", lastOf("f"), num("sf"), num("gf"), "%", "#f2c200");
+  goalRow("筋肉量", lastOf("m"), num("sm"), num("gm"), "kg", "#e5383b");
   if (rowsHtml.length) html.push(`<div class="rows">${rowsHtml.join("")}</div>`);
   html.push(overlay([
-    { title: "体重", pts: W, color: "#2bb88a", unit: "kg", dec: 1, tgt: g },
+    { title: "体重", pts: W, color: "#222b36", unit: "kg", dec: 1, tgt: g },
     { title: "BMI", pts: W.map(p => ({ ...p, val: bmi(p.val) })), color: "#3b82f6", unit: "", dec: 1, tgt: g != null ? +bmi(g).toFixed(1) : null },
-    { title: "体脂肪率", pts: series("f"), color: "#f97316", unit: "%", dec: 1, tgt: num("gf") },
-    { title: "筋肉量", pts: series("m"), color: "#a855f7", unit: "kg", dec: 1, tgt: num("gm") }
+    { title: "体脂肪率", pts: series("f"), color: "#f2c200", unit: "%", dec: 1, tgt: num("gf") },
+    { title: "筋肉量", pts: series("m"), color: "#e5383b", unit: "kg", dec: 1, tgt: num("gm") }
   ]));
   return html.join("");
 }
