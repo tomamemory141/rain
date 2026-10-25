@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ステータス</title>
 <style>
-/* 体重が目標までどれだけ進んだかを棒で、体重・BMI・体脂肪率・筋肉量の履歴を折れ線で出す。
+/* 体重が目標までどれだけ進んだかを棒で、体重・BMI・体脂肪率・筋肉量の履歴を、日付をそろえて縦にくっつけた折れ線で出す。
    数字はアドレスで渡す: w=今の体重 s=はじめの体重 g=目標 ht=身長(cm) d=測定日
    h=体重の履歴 / f=体脂肪率の履歴 / m=筋肉量の履歴(どれも 9/10:74.9,9/11:75.5 … の形)。BMIは体重と身長から計算する */
 :root { --fg: #1b2733; --sub: #5d6b79; --font: -apple-system, "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif; color-scheme: light }
@@ -21,15 +21,12 @@ body { background: #fff; color: var(--fg); font-family: var(--font); padding: 6p
 .bar { position: relative; height: 12px; border-radius: 7px; background: rgba(20,40,60,.09); overflow: hidden }
 .bar i { display: block; height: 100%; border-radius: 7px; background: var(--c); min-width: 3px }
 .left { font-size: 12px; color: var(--sub); white-space: nowrap }
-.card { background: #fff; border-radius: 12px; padding: 6px 10px 2px; border-left: 5px solid var(--c) }
-.card .hd { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 8px }
-.card .hd b { font-size: 14px }
-.card .hd .big { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--c) }
-.card .hd small { font-size: 11px; color: var(--sub) }
-.card svg { display: block; width: 100%; height: auto }
-.card text { font-family: var(--font); fill: var(--sub); font-size: 10px }
-.card .v { fill: var(--fg); font-weight: 700; font-size: 11px }
-.card .gl { font-weight: 700 }
+.stack { background: #fff; border-radius: 12px; padding: 4px 6px 2px }
+.stack svg { display: block; width: 100%; height: auto }
+.stack text { font-family: var(--font); fill: var(--sub); font-size: 10px }
+.stack .t { font-size: 12px; font-weight: 700 }
+.stack .d { font-size: 10px }
+.stack .v { fill: var(--fg); font-weight: 700; font-size: 11px }
 .foot { font-size: 10px; color: var(--sub); text-align: right; margin-top: 4px }
 </style>
 </head>
@@ -55,29 +52,40 @@ const w = num("w"), s = num("s"), g = num("g"), ht = num("ht") || 168.5;
 const bmi = kg => kg / ((ht / 100) ** 2);
 const W = series("h");
 
-// 折れ線のカード。decimals=小数の桁数、ref=目標の線(点線)、good="down"なら減るほど良い
-function card({ title, pts, color, unit, dec, ref, refLabel, good }) {
-  if (pts.length < 2) return "";
-  const first = pts[0], last = pts[pts.length - 1], diff = last.val - first.val;
-  const better = good === "down" ? diff < 0 : good === "up" ? diff > 0 : null;
-  const dtxt = `${diff > 0 ? "+" : ""}${diff.toFixed(dec)}${unit}`;
-  const Wd = 520, H = 150, L = 36, R = 16, T = 16, B = 22;
-  const vals = pts.map(p => p.val).concat(ref != null ? [ref] : []);
-  let lo = Math.min(...vals), hi = Math.max(...vals);
-  const pad = Math.max((hi - lo) * 0.12, dec ? 0.2 : 0.5); lo -= pad; hi += pad;
-  const t0 = first.dt.getTime(), t1 = last.dt.getTime() || 1;
-  const X = dt => L + (t1 === t0 ? 0.5 : (dt.getTime() - t0) / (t1 - t0)) * (Wd - L - R);
-  const Y = v => T + (hi - v) / (hi - lo) * (H - T - B);
-  const fmt = v => v.toFixed(dec);
+// 4つのパネルを、同じ日付の位置にそろえて縦にくっつける
+function stack(panels) {
+  panels = panels.filter(p => p.pts.length >= 2);
+  if (!panels.length) return "";
+  const all = panels.flatMap(p => p.pts.map(x => x.dt.getTime()));
+  const t0 = Math.min(...all), t1 = Math.max(...all);
+  const Wd = 520, L = 40, R = 14, PH = 96, AX = 22, H = PH * panels.length + AX;
+  const X = t => L + (t1 === t0 ? 0.5 : (t - t0) / (t1 - t0)) * (Wd - L - R);
   let svg = `<svg viewBox="0 0 ${Wd} ${H}">`;
-  for (let i = 0; i <= 3; i++) { const v = lo + (hi - lo) * i / 3; svg += `<line x1="${L}" x2="${Wd - R}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="rgba(20,40,60,.09)"/><text x="${L - 5}" y="${(Y(v) + 3).toFixed(1)}" text-anchor="end">${fmt(v)}</text>`; }
-  if (ref != null) svg += `<line x1="${L}" x2="${Wd - R}" y1="${Y(ref).toFixed(1)}" y2="${Y(ref).toFixed(1)}" stroke="#0a9e72" stroke-width="1.5" stroke-dasharray="5 4"/><text class="gl" fill="#0a9e72" style="fill:#0a9e72" x="${Wd - R}" y="${(Y(ref) - 4).toFixed(1)}" text-anchor="end">${refLabel}</text>`;
-  svg += `<path d="${pts.map((p, i) => `${i ? "L" : "M"}${X(p.dt).toFixed(1)},${Y(p.val).toFixed(1)}`).join(" ")}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
-  pts.forEach((p, i) => { const l = i === pts.length - 1; svg += `<circle cx="${X(p.dt).toFixed(1)}" cy="${Y(p.val).toFixed(1)}" r="${l ? 5 : 2.6}" fill="${l ? "#ff9f0a" : color}" stroke="#fff" stroke-width="1.4"/>`; });
-  svg += `<text class="v" x="${X(last.dt).toFixed(1)}" y="${(Y(last.val) - 9).toFixed(1)}" text-anchor="end">${fmt(last.val)}</text>`;
-  const step = Math.max(1, Math.ceil(pts.length / 7));
-  pts.forEach((p, i) => { if (i % step === 0) svg += `<text x="${X(p.dt).toFixed(1)}" y="${H - 6}" text-anchor="middle">${p.label}</text>`; });
-  return `<div class="card" style="--c:${color}"><div class="hd"><b>${title}</b><span class="big">${fmt(last.val)}${unit}</span><small>${first.label} から ${dtxt}${better === null ? "" : better ? " ↗ いい方向" : " ↘ 逆方向"}</small></div>${svg}</svg></div>`;
+  const DAY = 86400000, ticks = [];
+  for (let t = t0; t <= t1 + 1; t += 7 * DAY) ticks.push(t);
+  // 日付の縦線(全パネル共通)
+  ticks.forEach(t => { svg += `<line x1="${X(t).toFixed(1)}" x2="${X(t).toFixed(1)}" y1="0" y2="${PH * panels.length}" stroke="rgba(20,40,60,.08)"/>`; });
+  panels.forEach((p, k) => {
+    const y0 = k * PH, top = y0 + 24, bot = y0 + PH - 8;
+    const vals = p.pts.map(x => x.val).concat(p.ref != null ? [p.ref] : []);
+    let lo = Math.min(...vals), hi = Math.max(...vals);
+    const pad = Math.max((hi - lo) * 0.1, 0.2); lo -= pad; hi += pad;
+    const Y = v => top + (hi - v) / (hi - lo) * (bot - top);
+    const fmt = v => v.toFixed(p.dec);
+    const first = p.pts[0], last = p.pts[p.pts.length - 1], diff = last.val - first.val;
+    const better = p.good === "down" ? diff < 0 : p.good === "up" ? diff > 0 : null;
+    if (k) svg += `<line x1="0" x2="${Wd}" y1="${y0}" y2="${y0}" stroke="rgba(20,40,60,.14)"/>`;
+    svg += `<rect x="0" y="${y0 + 4}" width="4" height="${PH - 8}" rx="2" fill="${p.color}"/>`;
+    svg += `<text class="t" x="${L}" y="${y0 + 15}" style="fill:${p.color}">${p.title} ${fmt(last.val)}${p.unit}</text>`;
+    svg += `<text class="d" x="${Wd - R}" y="${y0 + 15}" text-anchor="end">${first.label} から ${diff > 0 ? "+" : ""}${diff.toFixed(p.dec)}${p.unit}${better === null ? "" : better ? "  いい方向" : "  逆方向"}</text>`;
+    [lo + pad, hi - pad].forEach(v => { svg += `<text x="${L - 5}" y="${(Y(v) + 3).toFixed(1)}" text-anchor="end">${fmt(v)}</text>`; });
+    if (p.ref != null) svg += `<line x1="${L}" x2="${Wd - R}" y1="${Y(p.ref).toFixed(1)}" y2="${Y(p.ref).toFixed(1)}" stroke="#0a9e72" stroke-width="1.5" stroke-dasharray="5 4"/><text style="fill:#0a9e72;font-weight:700" x="${Wd - R}" y="${(Y(p.ref) - 4).toFixed(1)}" text-anchor="end">${p.refLabel}</text>`;
+    svg += `<path d="${p.pts.map((x, i) => `${i ? "L" : "M"}${X(x.dt.getTime()).toFixed(1)},${Y(x.val).toFixed(1)}`).join(" ")}" fill="none" stroke="${p.color}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>`;
+    p.pts.forEach((x, i) => { const l = i === p.pts.length - 1; svg += `<circle cx="${X(x.dt.getTime()).toFixed(1)}" cy="${Y(x.val).toFixed(1)}" r="${l ? 4.5 : 2.2}" fill="${l ? "#ff9f0a" : p.color}" stroke="#fff" stroke-width="1.2"/>`; });
+  });
+  // 日付(いちばん下に1回だけ)
+  ticks.forEach(t => { const d = new Date(t); svg += `<text x="${X(t).toFixed(1)}" y="${H - 6}" text-anchor="middle">${d.getMonth() + 1}/${d.getDate()}</text>`; });
+  return `<div class="stack">${svg}</svg></div>`;
 }
 
 const html = [`<div class="cap">体のステータス</div>`];
@@ -85,10 +93,12 @@ if (w !== null && s !== null && g !== null) {
   const p = clamp((s - w) / (s - g) * 100), diff = w - g;
   html.push(`<div class="row"><div class="n">体重<small>${w}kg → 目標${g}kg</small></div><div class="bar"><i style="width:${p}%;--c:#6fd3b0"></i></div><div class="pct">${p.toFixed(0)}%</div><div class="left">${diff > 0 ? `あと ${diff.toFixed(1)}kg` : "目標達成!"}</div></div>`);
 }
-html.push(card({ title: "体重", pts: W, color: "#2bb88a", unit: "kg", dec: 1, ref: g, refLabel: g != null ? `目標 ${g}kg` : "", good: "down" }));
-html.push(card({ title: "BMI", pts: W.map(p => ({ ...p, val: bmi(p.val) })), color: "#3b82f6", unit: "", dec: 1, ref: g != null ? bmi(g) : null, refLabel: g != null ? `目標 ${bmi(g).toFixed(1)}` : "", good: "down" }));
-html.push(card({ title: "体脂肪率", pts: series("f"), color: "#f97316", unit: "%", dec: 1, good: "down" }));
-html.push(card({ title: "筋肉量", pts: series("m"), color: "#a855f7", unit: "kg", dec: 1, good: "up" }));
+html.push(stack([
+  { title: "体重", pts: W, color: "#2bb88a", unit: "kg", dec: 1, ref: g, refLabel: g != null ? `目標 ${g}kg` : "", good: "down" },
+  { title: "BMI", pts: W.map(p => ({ ...p, val: bmi(p.val) })), color: "#3b82f6", unit: "", dec: 1, ref: g != null ? bmi(g) : null, refLabel: g != null ? `目標 ${bmi(g).toFixed(1)}` : "", good: "down" },
+  { title: "体脂肪率", pts: series("f"), color: "#f97316", unit: "%", dec: 1, good: "down" },
+  { title: "筋肉量", pts: series("m"), color: "#a855f7", unit: "kg", dec: 1, good: "up" }
+]));
 document.getElementById("wrap").innerHTML = html.join("");
 document.getElementById("foot").textContent = q.get("d") ? `${q.get("d")} の測定` : "";
 </script>
