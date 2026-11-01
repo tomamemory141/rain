@@ -7,7 +7,7 @@
 <style>
 /* 体重が目標までどれだけ進んだかを棒で、体重・BMI・体脂肪率・筋肉量の履歴を、1つの表に重ねた折れ線で出す。
    数字は status_data.json から読む(同じ名前で):  w=今の体重 s=はじめの体重 g=目標 sf,gf=体脂肪率のはじめ・目標 sm,gm=筋肉量のはじめ・目標 ht=身長(cm) d=測定日 vl=内臓脂肪レベル a=アドバイス(「|」で区切ると改行) ad=アドバイスの日付
-   h=体重の履歴 / f=体脂肪率の履歴 / m=筋肉量の履歴(どれも 9/10:74.9,9/11:75.5 … の形)。BMIは体重と身長から計算する */
+   wt=体水分量の履歴 / h=体重の履歴 / f=体脂肪率の履歴 / m=筋肉量の履歴(どれも 9/10:74.9,9/11:75.5 … の形)。BMIは体重と身長から計算する */
 :root { --fg: #1b2733; --sub: #5d6b79; --font: -apple-system, "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif; color-scheme: light }
 * { box-sizing: border-box }
 html, body { margin: 0 }
@@ -74,7 +74,7 @@ const W = series("h");
 
 // 4つの線を、1つの表に重ねる(単位がちがうので、それぞれの最小〜最大を同じ高さにそろえて、形を比べる)
 // 見やすくするため、線は「3回分の平均」でなめらかにして、実際の測定は小さな点で残す。下の名前をタップすると線を出したり消したりできる。
-const on = { "体重": true, "BMI": false, "体脂肪率": true, "筋肉量": true };
+const on = { "体重": true, "BMI": false, "体脂肪率": true, "筋肉量": true, "水分量": true };
 const smooth = pts => pts.map((p, i) => { const a = pts.slice(Math.max(0, i - 2), i + 1); return { ...p, val: a.reduce((t, x) => t + x.val, 0) / a.length }; });
 
 function overlay(lines) {
@@ -176,7 +176,8 @@ function build() {
     { title: "体重", pts: W, color: "#222b36", unit: "kg", dec: 1, tgt: g },
     { title: "BMI", pts: W.map(p => ({ ...p, val: bmi(p.val) })), color: "#3b82f6", unit: "", dec: 1, tgt: g != null ? +bmi(g).toFixed(1) : null },
     { title: "体脂肪率", pts: series("f"), color: "#f2c200", unit: "%", dec: 1, tgt: num("gf") },
-    { title: "筋肉量", pts: series("m"), color: "#e5383b", unit: "kg", dec: 1, tgt: num("gm") }
+    { title: "筋肉量", pts: series("m"), color: "#e5383b", unit: "kg", dec: 1, tgt: num("gm") },
+    { title: "水分量", pts: series("wt"), color: "#0ea5e9", unit: "kg", dec: 1 }
   ]));
   return html.join("");
 }
