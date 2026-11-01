@@ -6,7 +6,7 @@
 <title>ステータス</title>
 <style>
 /* 体重が目標までどれだけ進んだかを棒で、体重・BMI・体脂肪率・筋肉量の履歴を、1つの表に重ねた折れ線で出す。
-   数字はアドレスで渡す: w=今の体重 s=はじめの体重 g=目標 sf,gf=体脂肪率のはじめ・目標 sm,gm=筋肉量のはじめ・目標 ht=身長(cm) d=測定日 vl=内臓脂肪レベル a=アドバイス(「|」で区切ると改行) ad=アドバイスの日付
+   数字は status_data.json から読む(同じ名前で):  w=今の体重 s=はじめの体重 g=目標 sf,gf=体脂肪率のはじめ・目標 sm,gm=筋肉量のはじめ・目標 ht=身長(cm) d=測定日 vl=内臓脂肪レベル a=アドバイス(「|」で区切ると改行) ad=アドバイスの日付
    h=体重の履歴 / f=体脂肪率の履歴 / m=筋肉量の履歴(どれも 9/10:74.9,9/11:75.5 … の形)。BMIは体重と身長から計算する */
 :root { --fg: #1b2733; --sub: #5d6b79; --font: -apple-system, "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif; color-scheme: light }
 * { box-sizing: border-box }
@@ -48,7 +48,13 @@ body { background: #fff; color: var(--fg); font-family: var(--font); padding: 6p
 <div class="wrap" id="wrap"></div>
 <div class="foot" id="foot"></div>
 <script>
-const q = new URLSearchParams(location.search);
+(async () => {
+// データは status_data.json から読む(Notionの埋め込みのアドレスを書き換えると大きさが小さくなってしまうため、アドレスは変えない)。
+// 読めないときだけ、アドレスの数字(?w=75.1&... の形)を使う。
+let P = {};
+try { const r = await fetch("status_data.json?t=" + Date.now(), { cache: "no-store" }); if (r.ok) P = await r.json(); } catch (e) {}
+const qs = new URLSearchParams(location.search);
+const q = { get: k => (k in P && P[k] !== null && P[k] !== "") ? String(P[k]) : (qs.has(k) ? qs.get(k) : null) };
 const num = k => (q.get(k) === null || q.get(k) === "" || isNaN(+q.get(k))) ? null : +q.get(k);
 const clamp = p => Math.min(100, Math.max(0, p));
 const now = new Date();
@@ -178,6 +184,7 @@ const draw = () => { document.getElementById("wrap").innerHTML = build(); };
 document.addEventListener("click", e => { const el = e.target.closest(".lg"); if (el) { on[el.dataset.k] = !on[el.dataset.k]; draw(); } });
 draw();
 document.getElementById("foot").textContent = q.get("d") ? `${q.get("d")} の測定` : "";
+})();
 </script>
 </body>
 </html>
