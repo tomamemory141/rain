@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>砂時計</title>
+<style>
+:root{--fg:#37352f;--sub:#8a8780;--sand:#e3b04b;--sand2:#c98f2c;--glass:#b9b6ae;--card:#f7f6f3;--btn:#ebe9e4}
+@media (prefers-color-scheme:dark){:root{--fg:#e6e4df;--sub:#9b9892;--sand:#e8b95a;--sand2:#c99a3e;--glass:#6b6963;--card:#2b2b2a;--btn:#3a3a38}}
+*{box-sizing:border-box}
+html,body{margin:0;background:transparent;color:var(--fg);font-family:-apple-system,"Hiragino Sans","Yu Gothic UI","Meiryo",sans-serif}
+.wrap{display:flex;gap:10px;padding:6px;align-items:stretch}
+.card{flex:1 1 0;min-width:0;background:var(--card);border-radius:12px;padding:10px 6px 10px;text-align:center;display:flex;flex-direction:column;align-items:center}
+.t{font-size:12px;color:var(--sub);margin-bottom:2px}
+svg{width:100%;max-width:120px;height:auto;display:block}
+.big{font-size:17px;font-weight:700;margin-top:2px;line-height:1.25}
+.small{font-size:11px;color:var(--sub);margin-top:2px}
+.btns{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;justify-content:center}
+button{font:inherit;font-size:11px;color:var(--fg);background:var(--btn);border:0;border-radius:6px;padding:4px 7px;cursor:pointer}
+button.on{background:var(--sand);color:#3a2a05}
+.glass{fill:none;stroke:var(--glass);stroke-width:3;stroke-linejoin:round}
+.cap{fill:var(--glass)}
+.stream{stroke:var(--sand2);stroke-width:1.6;stroke-dasharray:2 3;animation:fall .5s linear infinite}
+@keyframes fall{to{stroke-dashoffset:-5}}
+.done .big{color:#d9534f}
+@media (max-width:420px){.wrap{flex-direction:column}.card{flex-direction:row;gap:10px;text-align:left;justify-content:space-around}svg{max-width:70px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card" id="c-day"></div>
+  <div class="card" id="c-timer"></div>
+  <div class="card" id="c-life"></div>
+</div>
+<script>
+// 砂時計の絵(SVG)を作る。id は同じ画面に3つ並ぶので別々の名前にする
+const GLASS = "M16 10 H84 C84 46 58 62 52 82 C58 102 84 118 84 154 H16 C16 118 42 102 48 82 C42 62 16 46 16 10 Z";
+function glassSVG(id){
+  return `<svg viewBox="0 0 100 164" aria-hidden="true">
+  <defs><clipPath id="cp-${id}"><path d="${GLASS}"/></clipPath></defs>
+  <g clip-path="url(#cp-${id})">
+    <rect id="top-${id}" x="0" y="82" width="100" height="0" fill="var(--sand)"/>
+    <rect id="bot-${id}" x="0" y="154" width="100" height="0" fill="var(--sand2)"/>
+    <line id="st-${id}" class="stream" x1="50" y1="82" x2="50" y2="154" style="display:none"/>
+  </g>
+  <rect class="cap" x="10" y="3" width="80" height="7" rx="3"/>
+  <rect class="cap" x="10" y="154" width="80" height="7" rx="3"/>
+  <path class="glass" d="${GLASS}"/>
+</svg>`;
+}
+// f = 上に残っている砂の割合(0〜1)。flow = 砂が落ちている途中か
+function setGlass(id,f,flow){
+  f=Math.max(0,Math.min(1,f));
+  const H=72, top=document.getElementById('top-'+id), bot=document.getElementById('bot-'+id), st=document.getElementById('st-'+id);
+  top.setAttribute('y',82-H*f); top.setAttribute('height',H*f);
+  const g=1-f; bot.setAttribute('y',154-H*g); bot.setAttribute('height',H*g);
+  if(flow && f>0 && f<1){ st.style.display=''; st.setAttribute('y2',154-H*g); } else { st.style.display='none'; }
+}
+const P=new URLSearchParams(location.search);
+const pad=n=>String(n).padStart(2,'0');
+
+// ① 今日の残り(0:00〜24:00)
+const cd=document.getElementById('c-day');
+cd.innerHTML=`<div class="t">今日の残り</div>${glassSVG('d')}<div class="big" id="d-big"></div><div class="small" id="d-small"></div>`;
+function updDay(){
+  const n=new Date(), s=new Date(n.getFullYear(),n.getMonth(),n.getDate()), e=new Date(s.getTime()+86400000);
+  const f=(e-n)/(e-s), left=Math.floor((e-n)/60000);
+  setGlass('d',f,true);
+  document.getElementById('d-big').textContent=`あと${Math.floor(left/60)}時間${pad(left%60)}分`;
+  document.getElementById('d-small').textContent=`${Math.round((1-f)*100)}% 過ぎた`;
+}
+
+// ② タイマー(押すと始まる。ブラウザを閉じても、終わる時刻を覚えている)
+const ct=document.getElementById('c-timer');
+ct.innerHTML=`<div class="t">タイマー</div>${glassSVG('t')}<div class="big" id="t-big">--:--</div><div class="small" id="t-small">時間を選んでね</div>
+<div class="btns" id="t-pick"><button data-m="5">5分</button><button data-m="25">25分</button><button data-m="60">60分</button></div>
+<div class="btns"><button id="t-pause">一時停止</button><button id="t-reset">リセット</button></div>`;
+let T={total:0,end:0,left:0,run:false};
+try{const s=JSON.parse(localStorage.getItem('hg-timer')||'null'); if(s&&s.total) T=s;}catch(e){}
+function saveT(){try{localStorage.setItem('hg-timer',JSON.stringify(T));}catch(e){}}
+function updTimer(){
+  let leftMs=T.run?Math.max(0,T.end-Date.now()):T.left;
+  if(T.run&&leftMs<=0){T.run=false;T.left=0;saveT();}
+  const big=document.getElementById('t-big'), sm=document.getElementById('t-small');
+  document.querySelectorAll('#t-pick button').forEach(b=>b.classList.toggle('on',+b.dataset.m*60000===T.total&&T.total>0));
+  if(!T.total){ setGlass('t',1,false); big.textContent='--:--'; sm.textContent='時間を選んでね'; ct.classList.remove('done'); return; }
+  const f=leftMs/T.total; setGlass('t',f,T.run);
+  const sec=Math.ceil(leftMs/1000);
+  big.textContent=`${pad(Math.floor(sec/60))}:${pad(sec%60)}`;
+  if(leftMs<=0){ sm.textContent='おわり!'; ct.classList.add('done'); }
+  else { ct.classList.remove('done'); sm.textContent=T.run?'落ちてます':'止まってます'; }
+  document.getElementById('t-pause').textContent=(T.run?'一時停止':(leftMs>0&&leftMs<T.total?'再開':'スタート'));
+}
+document.getElementById('t-pick').addEventListener('click',e=>{
+  const m=e.target.dataset&&e.target.dataset.m; if(!m) return;
+  T={total:m*60000,end:Date.now()+m*60000,left:m*60000,run:true}; saveT(); updTimer();
+});
+document.getElementById('t-pause').addEventListener('click',()=>{
+  if(!T.total) return;
+  if(T.run){T.left=Math.max(0,T.end-Date.now());T.run=false;}
+  else if(T.left>0){T.end=Date.now()+T.left;T.run=true;}
+  saveT(); updTimer();
+});
+document.getElementById('t-reset').addEventListener('click',()=>{T={total:0,end:0,left:0,run:false};saveT();updTimer();});
+
+// ③ 人生(生まれた日〜81歳)
+const cl=document.getElementById('c-life');
+cl.innerHTML=`<div class="t">人生</div>${glassSVG('l')}<div class="big" id="l-big"></div><div class="small" id="l-small"></div>`;
+const BORN=new Date((P.get('b')||'1992-12-01')+'T00:00:00'), SPAN=+(P.get('l')||81);
+function updLife(){
+  const n=new Date(), end=new Date(BORN); end.setFullYear(end.getFullYear()+SPAN);
+  const f=(end-n)/(end-BORN), leftY=(end-n)/(365.25*86400000), age=(n-BORN)/(365.25*86400000);
+  setGlass('l',f,true);
+  document.getElementById('l-big').textContent=`あと${leftY.toFixed(1)}年`;
+  document.getElementById('l-small').textContent=`${age.toFixed(1)}歳 / ${SPAN}歳まで`;
+}
+
+function tick(){updDay();updTimer();updLife();}
+tick(); setInterval(tick,1000);
+</script>
+</body>
+</html>
