@@ -113,7 +113,7 @@ h1 { font-size: 16px; margin: 0; font-weight: 700 }
     <div class="days" id="days"></div>
   </div>
 
-  <div class="foot"><span id="upd"></span> 出典:<a href="https://www.jma.go.jp/bosai/nowc/" target="_blank" rel="noopener">気象庁ナウキャスト</a>・<a href="https://www.jma.go.jp/bosai/forecast/#area_type=offices&area_code=130000" target="_blank" rel="noopener">天気予報</a>を加工 / <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a></div>
+  <div class="foot"><span id="upd"></span> 出典:<a href="https://www.jma.go.jp/bosai/nowc/" target="_blank" rel="noopener">気象庁ナウキャスト</a>・<a href="https://www.jma.go.jp/bosai/forecast/#area_type=offices&area_code=130000" target="_blank" rel="noopener">天気予報</a>を加工 / <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> / <a href="https://api.met.no/" target="_blank" rel="noopener">MET Norway</a></div>
 </div>
 <script>
 const LAT = 35.727, LON = 139.539, Z = 10;
@@ -249,10 +249,65 @@ const JMA_FC = "https://www.jma.go.jp/bosai/forecast/data/forecast/130000.json";
 
 const RAINY = new Set([51,53,55,56,57,61,63,65,66,67,71,73,75,77,80,81,82,85,86,95,96,99]);
 
+
+// ---- Open-Meteo が落ちている時の代わり:ノルウェー気象局(MET Norway)から同じ形のデータを作る ----
+const WMO = { clearsky:0, fair:1, partlycloudy:2, cloudy:3, fog:45, lightrain:61, rain:63, heavyrain:65,
+  lightrainshowers:80, rainshowers:81, heavyrainshowers:82, lightsleet:67, sleet:67, heavysleet:67,
+  lightsleetshowers:67, sleetshowers:67, heavysleetshowers:67, lightsnow:71, snow:73, heavysnow:75,
+  lightsnowshowers:85, snowshowers:85, heavysnowshowers:86 };
+function metCode(sym) {
+  if (!sym) return 3;
+  const b = sym.replace(/_(day|night|polartwilight)$/, "");
+  if (b.includes("thunder")) return 95;
+  return WMO[b] ?? 3;
+}
+const jstStr = d => new Date(d.getTime() + 9 * 3600 * 1000).toISOString().slice(0, 16);   // 日本時間 "2026-11-13T09:00"
+async function fetchMet() {
+  const j = await fetch(`https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${LAT}&lon=${LON}`, { cache: "no-store" }).then(r => r.json());
+  const ts = j.properties.timeseries.map(e => ({ t: jstStr(new Date(e.time)), temp: e.data.instant.details.air_temperature, h1: e.data.next_1_hours, h6: e.data.next_6_hours }));
+  const sym = x => x && x.summary && x.summary.symbol_code;
+  const night = s => (s && /_night$/.test(s)) ? 0 : 1;
+  const hourly = { time: [], temperature_2m: [], precipitation_probability: [], precipitation: [], weather_code: [], is_day: [] };
+  ts.filter(x => x.h1).forEach(x => {
+    const s = sym(x.h1);
+    hourly.time.push(x.t); hourly.temperature_2m.push(x.temp); hourly.precipitation_probability.push(null);
+    hourly.precipitation.push((x.h1.details && x.h1.details.precipitation_amount) || 0);
+    hourly.weather_code.push(metCode(s)); hourly.is_day.push(night(s));
+  });
+  const f = ts[0], fs = sym(f.h1) || sym(f.h6);
+  const current = { time: f.t, temperature_2m: f.temp, weather_code: metCode(fs), is_day: night(fs) };
+  const days = [...new Set(ts.map(x => x.t.slice(0, 10)))].slice(0, 7);
+  const daily = { time: days, weather_code: [], temperature_2m_max: [], temperature_2m_min: [], precipitation_probability_max: [], precipitation_sum: [], sunrise: [], sunset: [] };
+  days.forEach(d => {
+    const xs = ts.filter(x => x.t.slice(0, 10) === d), tp = xs.map(x => x.temp);
+    daily.temperature_2m_max.push(Math.max(...tp)); daily.temperature_2m_min.push(Math.min(...tp));
+    let sum = 0;
+    xs.forEach(x => { const a = x.h1 ? (x.h1.details && x.h1.details.precipitation_amount) : (x.h6 && x.h6.details && x.h6.details.precipitation_amount); sum += a || 0; });
+    daily.precipitation_sum.push(sum);
+    const mid = xs.reduce((a, b) => Math.abs(+b.t.slice(11, 13) - 12) < Math.abs(+a.t.slice(11, 13) - 12) ? b : a);
+    daily.weather_code.push(metCode(sym(mid.h6) || sym(mid.h1)));
+    daily.precipitation_probability_max.push(undefined);
+  });
+  return { current, hourly, daily };
+}
+async function fetchForecast(url) {
+  try {
+    const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 8000);
+    const r = await fetch(url, { cache: "no-store", signal: ctl.signal });
+    clearTimeout(tm);
+    if (!r.ok) throw new Error("status " + r.status);
+    const j = await r.json();
+    if (!j.current) throw new Error("no data");
+    return j;
+  } catch (e) {
+    return await fetchMet();
+  }
+}
+
 async function loadWeather(rainNow) {
   const q = "current=temperature_2m,weather_code,is_day&hourly=temperature_2m,precipitation_probability,precipitation,weather_code,is_day"
           + "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,sunrise,sunset&timezone=Asia%2FTokyo&forecast_days=7";
-  const w = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&${q}`, { cache: "no-store" }).then(r => r.json());
+  const w = await fetchForecast(`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&${q}`);
   const c = w.current;
 
   // 上
