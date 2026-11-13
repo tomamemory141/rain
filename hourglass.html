@@ -49,12 +49,33 @@ function glassSVG(id){
 </svg>`;
 }
 // f = 上に残っている砂の割合(0〜1)。flow = 砂が落ちている途中か
+// 砂の「量」で割合を合わせる:ガラスの形(上が広く首が細い)を1段ずつ数えて、
+// 「全体のうち何%の砂が入る高さか」を求める。高さで決めると見た目の量とずれるため。
+const SC=4, CUM=(function(){
+  const c=document.createElement('canvas'); c.width=100*SC; c.height=164*SC;
+  const x=c.getContext('2d'); x.scale(SC,SC); x.fillStyle='#000'; x.fill(new Path2D(GLASS));
+  const d=x.getImageData(0,0,c.width,c.height).data, row=new Array(164*SC).fill(0);
+  for(let y=0;y<164*SC;y++){let n=0;for(let xx=0;xx<100*SC;xx++){if(d[(y*c.width+xx)*4+3]>127)n++;}row[y]=n;}
+  // 上の玉:首(y=82)から上へ積んだ面積 / 下の玉:底(y=154)から上へ積んだ面積
+  const up=[0], dn=[0];
+  for(let y=82*SC-1;y>=10*SC;y--) up.push(up[up.length-1]+row[y]);
+  for(let y=154*SC-1;y>=82*SC;y--) dn.push(dn[dn.length-1]+row[y]);
+  return {up,dn};
+})();
+// 面積の割合 a(0〜1) になる高さ(上の玉も下の玉も、底から数えた高さ)を返す
+function levelFor(cum,a){
+  const tot=cum[cum.length-1], want=a*tot; let lo=0,hi=cum.length-1;
+  while(lo<hi){const m=(lo+hi)>>1; if(cum[m]<want)lo=m+1; else hi=m;}
+  return lo/SC;
+}
 function setGlass(id,f,flow){
   f=Math.max(0,Math.min(1,f));
-  const H=72, top=document.getElementById('top-'+id), bot=document.getElementById('bot-'+id), st=document.getElementById('st-'+id);
-  top.setAttribute('y',82-H*f); top.setAttribute('height',H*f);
-  const g=1-f; bot.setAttribute('y',154-H*g); bot.setAttribute('height',H*g);
-  if(flow && f>0 && f<1){ st.style.display=''; st.setAttribute('y2',154-H*g); } else { st.style.display='none'; }
+  const top=document.getElementById('top-'+id), bot=document.getElementById('bot-'+id), st=document.getElementById('st-'+id);
+  const ht=levelFor(CUM.up,f);          // 上の砂の高さ(首から)
+  const hb=levelFor(CUM.dn,1-f);        // 下の砂の高さ(底から)
+  top.setAttribute('y',82-ht); top.setAttribute('height',ht);
+  bot.setAttribute('y',154-hb); bot.setAttribute('height',hb);
+  if(flow && f>0 && f<1){ st.style.display=''; st.setAttribute('y2',154-hb); } else { st.style.display='none'; }
 }
 const P=new URLSearchParams(location.search);
 const pad=n=>String(n).padStart(2,'0');
