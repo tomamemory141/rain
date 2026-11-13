@@ -10,20 +10,22 @@
 *{box-sizing:border-box}
 html,body{margin:0;background:transparent;color:var(--fg);font-family:-apple-system,"Hiragino Sans","Yu Gothic UI","Meiryo",sans-serif}
 .wrap{display:flex;gap:10px;padding:6px;align-items:stretch}
-.card{flex:1 1 0;min-width:0;background:var(--card);border-radius:12px;padding:10px 6px 10px;text-align:center;display:flex;flex-direction:column;align-items:center}
-.t{font-size:12px;color:var(--sub);margin-bottom:2px}
-svg{width:100%;max-width:120px;height:auto;display:block}
-.big{font-size:17px;font-weight:700;margin-top:2px;line-height:1.25}
-.small{font-size:11px;color:var(--sub);margin-top:2px}
-.btns{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;justify-content:center}
-button{font:inherit;font-size:11px;color:var(--fg);background:var(--btn);border:0;border-radius:6px;padding:4px 7px;cursor:pointer}
+.card{flex:1 1 0;min-width:0;background:var(--card);border-radius:12px;padding:8px 8px;text-align:left;display:grid;grid-template-columns:44px 1fr;column-gap:8px;align-content:center;align-items:center}
+.card>svg{grid-column:1;grid-row:1 / span 6;align-self:center}
+.card>*:not(svg){grid-column:2}
+.t{font-size:11px;color:var(--sub)}
+svg{width:44px;height:auto;display:block}
+.big{font-size:15px;font-weight:700;line-height:1.25}
+.small{font-size:10px;color:var(--sub)}
+.btns{display:flex;gap:3px;margin-top:4px;flex-wrap:wrap}
+button{font:inherit;font-size:10px;color:var(--fg);background:var(--btn);border:0;border-radius:6px;padding:3px 6px;cursor:pointer}
 button.on{background:var(--sand);color:#3a2a05}
 .glass{fill:none;stroke:var(--glass);stroke-width:3;stroke-linejoin:round}
 .cap{fill:var(--glass)}
 .stream{stroke:var(--sand2);stroke-width:1.6;stroke-dasharray:2 3;animation:fall .5s linear infinite}
 @keyframes fall{to{stroke-dashoffset:-5}}
 .done .big{color:#d9534f}
-@media (max-width:420px){.wrap{flex-direction:column}.card{flex-direction:row;gap:10px;text-align:left;justify-content:space-around}svg{max-width:70px}}
+@media (max-width:520px){.wrap{flex-direction:column}}
 </style>
 </head>
 <body>
