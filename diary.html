@@ -14,7 +14,10 @@
   button,select{font:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);padding:4px 12px;cursor:pointer}
   button.save{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:700}
   button.reset{color:var(--red);border-color:#f0b8b8}
-  .allday{font-size:12px;color:var(--mute);margin:-2px 2px 6px;display:none}
+  .head{padding:2px 130px 6px 4px}  /* 右上にNotionの小さな道具が出るので、あけておく */
+  .hd{font-size:20px;font-weight:700}
+  .hd .blue{color:var(--blue)}
+  .hs{font-size:12px;color:var(--mute);font-weight:600;min-height:16px}
   .msg{font-size:12px;color:var(--mute);min-width:90px}
   .cols{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   @media(max-width:440px){.cols{grid-template-columns:1fr}}
@@ -28,16 +31,16 @@
 </style>
 </head>
 <body>
+<div class="head"><div class="hd" id="date"></div><div class="hs" id="allday"></div></div>
 <div class="card">
   <div class="bar">
-    <span class="date" id="date"></span>
+    <span style="margin-right:auto"></span>
     <select id="past" title="保存した日を開く"><option value="">過去の日</option></select>
     <button id="imp" style="display:none">予定を取り込む</button>
     <button class="save" id="save">保存</button>
     <button class="reset" id="reset">リセット</button>
     <span class="msg" id="msg"></span>
   </div>
-  <div class="allday" id="allday"></div>
   <div class="cols" id="cols"></div>
 </div>
 <script>
@@ -64,7 +67,7 @@ function refreshPast(){
   $("past").innerHTML='<option value="">過去の日</option>'+(cur!==today?'<option value="'+today+'">今日に戻る</option>':"")+a.map(k=>'<option value="'+k+'">'+label(k)+'</option>').join("");
   $("past").value="";
 }
-function show(k){cur=k;$("date").textContent=label(k);const s=ls.get("diary:day:"+k);const dr=JSON.parse(ls.get("diary:draft:"+k)||"null");
+function show(k){cur=k;{const d=new Date(k+"T00:00:00"),t=(d.getMonth()+1)+"/"+d.getDate()+"("+W[d.getDay()]+")";$("date").innerHTML='<span class="blue">'+(k===ymd(new Date())?"今日 ":"")+t+'</span> <span id="cnt"></span>';$("allday").textContent=""}const s=ls.get("diary:day:"+k);const dr=JSON.parse(ls.get("diary:draft:"+k)||"null");
   // 下書きがその日のものなら、保存前の入力を優先して戻す
   fill(dr?dr.data:(s?JSON.parse(s):{}));refreshPast();mark();if(GSRC)importCal(false,!ls.get("diary:cal:"+k))}
 function draft(){ls.set("diary:draft:"+cur,JSON.stringify({date:cur,data:read()}))}
@@ -85,7 +88,10 @@ async function importCal(manual,fill){
     const j=await r.json();if(day!==cur)return;
     const ev=(j.events||[]).map(e=>({t:e.t,a:e.a,s:new Date(e.s),e:new Date(e.e)})).filter(e=>e.e>t0&&e.s<t1);
     const all=ev.filter(e=>e.a).map(e=>e.t);
-    $("allday").style.display=all.length?"block":"none";$("allday").textContent=all.length?"終日: "+all.join("、"):"";
+    const nowT=new Date(),nxt=day===ymd(nowT)?ev.filter(e=>!e.a&&e.e>nowT).sort((x,y)=>x.s-y.s)[0]:null,parts=[];
+    if(all.length)parts.push("終日: "+all.join("、"));
+    if(nxt){const m=hmOf(nxt.s);parts.push("次 "+Math.floor(m/60)+":"+String(m%60).padStart(2,"0")+" "+nxt.t)}
+    $("allday").textContent=parts.join("　");$("cnt").textContent=ev.length?"予定 "+ev.length+"件":"予定なし";
     let n=0;
     if(fill)ev.filter(e=>!e.a).sort((x,y)=>x.s-y.s).forEach(e=>{
       const a=Math.max(e.s,t0),b=Math.min(e.e,t1),sm=hmOf(new Date(a)),em=(b>=t1?1440:hmOf(new Date(b)));
