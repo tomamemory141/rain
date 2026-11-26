@@ -8,27 +8,27 @@
   :root{--bg:#e9edf2;--card:#f3f6fb;--white:#fff;--ink:#222;--mute:#777;--line:#d6dce5;--org:#f2a33a;--orgbg:#fff1d6;--green:#2fb88a;--red:#e84040;--yel:#f0c000;--blue:#1ea0e6}
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);font-family:"Yu Gothic UI","Meiryo",sans-serif;color:var(--ink);padding:20px 12px 40px;display:flex;justify-content:center}
-  .card{width:100%;max-width:420px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:12px 14px 14px;box-shadow:0 4px 18px rgba(0,0,0,.08)}
+  .card{width:100%;max-width:420px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:8px 12px 8px;box-shadow:0 4px 18px rgba(0,0,0,.08)}
   .head{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--mute);margin-bottom:8px}
   .badge{background:var(--green);color:#fff;border-radius:14px;padding:3px 10px;font-size:11px;font-weight:bold}
-  .sum{display:flex;gap:10px;align-items:center;background:var(--orgbg);border:1px solid #f4d9a4;border-radius:12px;padding:8px 10px;margin-bottom:10px}
+  .sum{display:flex;gap:10px;align-items:center;background:var(--orgbg);border:1px solid #f4d9a4;border-radius:12px;padding:4px 8px;margin-bottom:4px}
   .score{border:3px solid var(--org);border-radius:10px;background:#fff;text-align:center;padding:2px 8px;min-width:68px}
-  .score b{display:block;font-size:26px;color:var(--org);line-height:1.1;font-variant-numeric:tabular-nums}
+  .score b{display:block;font-size:20px;color:var(--org);line-height:1.1;font-variant-numeric:tabular-nums}
   .score span{font-size:9px;color:var(--org)}
   .sum p{margin:0;font-size:14px;font-weight:bold;line-height:1.4}
   .sum small{font-size:11px;color:var(--mute);font-weight:normal}
-  .row{padding:6px 2px;border-top:1px solid var(--line)}
+  .row{padding:2px 2px;border-top:1px solid var(--line)}
   .row:first-of-type{border-top:0}
   .rt{display:flex;justify-content:space-between;align-items:baseline}
-  .rt b{font-size:16px}
+  .rt b{font-size:13px}
   .rt em{font-style:normal;font-size:11px;color:var(--mute);margin-left:6px}
   .rt .pc{font-size:14px;font-weight:bold;color:var(--org)}
-  .bar{height:9px;background:#d9dde3;border-radius:5px;overflow:hidden;margin-top:3px}
+  .bar{height:6px;background:#d9dde3;border-radius:5px;overflow:hidden;margin-top:3px}
   .bar i{display:block;height:100%;width:0;border-radius:5px}
-  .gr{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:10px;margin-top:8px}
+  .gr{background:var(--white);border:1px solid var(--line);border-radius:12px;padding:6px 8px;margin-top:5px}
   canvas{width:100%;display:block}
   .bigbox{text-align:center;background:#1c1f26;border-color:#1c1f26}
-  .bigsec{font-size:34px;font-weight:bold;color:#ff5a5a;font-variant-numeric:tabular-nums;letter-spacing:.5px;transition:color .15s}
+  .bigsec{font-size:24px;font-weight:bold;color:#ff5a5a;font-variant-numeric:tabular-nums;letter-spacing:.5px;transition:color .15s}
   .bigsec.flash{color:#fff}
   .biglbl{font-size:11px;color:#9aa1ad;text-align:center;margin-top:2px}
   .legend{display:flex;gap:12px;font-size:11px;color:var(--mute);margin-top:8px}
@@ -92,7 +92,7 @@ function nums(){
 }
 function draw(){
   const dpr=window.devicePixelRatio||1,W=cv.clientWidth,gap=1.5,cell=(W-gap*(cols-1))/cols,H=rows*(cell+gap)-gap;
-  cv.width=W*dpr;cv.height=H*dpr;cv.style.height=H+"px";ctx.setTransform(dpr,0,0,dpr,0,0);
+  cv.width=W*dpr;cv.height=H*dpr;cv.style.height=(H*.38)+"px";ctx.setTransform(dpr,0,0,dpr,0,0);
   const pos=(new Date()-birth)/(end-birth)*rows*cols,used=pos*prog,pulse=.5+.5*Math.sin(performance.now()/180);
   const now=performance.now()/1000,i0=Math.floor(pos),step=cell+gap;
   for(let i=0;i<rows*cols;i++){
@@ -126,8 +126,8 @@ function draw(){
 // 今日の1440分(1マス=1分)。いまの1分は、秒ごとに灰色が伸びていく
 const c2=$("cv2"),x2=c2.getContext("2d");
 function drawToday(){
-  const dpr=window.devicePixelRatio||1,W=c2.clientWidth,C=48,R=30,gap=1.5,cell=(W-gap*(C-1))/C,H=R*(cell+gap)-gap;
-  c2.width=W*dpr;c2.height=H*dpr;c2.style.height=H+"px";x2.setTransform(dpr,0,0,dpr,0,0);
+  const dpr=window.devicePixelRatio||1,W=c2.clientWidth,C=96,R=15,gap=1.5,cell=(W-gap*(C-1))/C,H=R*(cell+gap)-gap;
+  c2.width=W*dpr;c2.height=H*dpr;c2.style.height=(H*.55)+"px";x2.setTransform(dpr,0,0,dpr,0,0);
   const n=new Date(),sod=new Date(n.getFullYear(),n.getMonth(),n.getDate()),sec=(n-sod)/1000,m=sec/60,mi=Math.floor(m);
   for(let i=0;i<1440;i++){
     const x=(i%C)*(cell+gap),y=Math.floor(i/C)*(cell+gap);
