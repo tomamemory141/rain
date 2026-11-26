@@ -27,6 +27,10 @@
   .bar i{display:block;height:100%;width:0;border-radius:5px}
   .gr{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:10px;margin-top:8px}
   canvas{width:100%;display:block}
+  .bigbox{text-align:center;background:#1c1f26;border-color:#1c1f26}
+  .bigsec{font-size:34px;font-weight:bold;color:#ff5a5a;font-variant-numeric:tabular-nums;letter-spacing:.5px;transition:color .15s}
+  .bigsec.flash{color:#fff}
+  .biglbl{font-size:11px;color:#9aa1ad;text-align:center;margin-top:2px}
   .legend{display:flex;gap:12px;font-size:11px;color:var(--mute);margin-top:8px}
   .legend b{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
   .tick{font-size:12px;color:var(--red);font-weight:bold;margin-top:8px;text-align:center;font-variant-numeric:tabular-nums}
@@ -45,6 +49,14 @@
   <div class="row"><div class="rt"><span><b>日</b><em id="e_day"></em></span><span class="pc" id="p_day"></span></div><div class="bar"><i id="b_day" style="background:var(--yel)"></i></div></div>
   <div class="row"><div class="rt"><span><b>時間</b><em id="e_hour"></em></span><span class="pc" id="p_hour"></span></div><div class="bar"><i id="b_hour" style="background:var(--blue)"></i></div></div>
   <div class="row"><div class="rt"><span><b>秒</b><em id="e_sec"></em></span><span class="pc" id="p_sec"></span></div><div class="bar"><i id="b_sec" style="background:#8a63d2"></i></div></div>
+  <div class="gr bigbox">
+    <div class="bigsec" id="bigsec"></div>
+    <div class="biglbl">秒。いまも、この数字が減っています</div>
+  </div>
+  <div class="gr">
+    <div class="biglbl" style="margin:0 0 6px;text-align:left" id="todaylbl"></div>
+    <canvas id="cv2"></canvas>
+  </div>
   <div class="gr">
     <canvas id="cv"></canvas>
     <div class="legend"><span><b style="background:#c9ced6"></b>もう使った</span><span><b style="background:#f0b400"></b>いま</span><span><b style="background:#2fb88a"></b>これから</span></div>
@@ -73,6 +85,9 @@ function nums(){
   $("age").textContent=Math.floor((now-birth)/DAY/365.2425)+"歳";
   $("msg").innerHTML="人生の約"+(U.week.f(now-birth)/U.week.f(end-birth)*100).toFixed(0)+"%を使いました。<br><small>残りはいまも減っています</small>";
   const ms=end-now,s=Math.floor(ms/1000);
+  const bs=$("bigsec"),txt=fmt(s)+"."+String(Math.floor(ms%1000/100));
+  if(bs.dataset.s!=String(s)){bs.dataset.s=s;bs.classList.add("flash");setTimeout(()=>bs.classList.remove("flash"),120);}
+  bs.textContent=txt;
   $("tick").textContent="あと "+fmt(s/86400)+"日 "+pad(Math.floor(s%86400/3600))+":"+pad(Math.floor(s%3600/60))+":"+pad(s%60);
 }
 function draw(){
@@ -108,10 +123,23 @@ function draw(){
     }
   }
 }
-function loop(){prog=1;draw();nums();setTimeout(()=>{raf=requestAnimationFrame(loop)},40);}
+// 今日の1440分(1マス=1分)。いまの1分は、秒ごとに灰色が伸びていく
+const c2=$("cv2"),x2=c2.getContext("2d");
+function drawToday(){
+  const dpr=window.devicePixelRatio||1,W=c2.clientWidth,C=48,R=30,gap=1.5,cell=(W-gap*(C-1))/C,H=R*(cell+gap)-gap;
+  c2.width=W*dpr;c2.height=H*dpr;c2.style.height=H+"px";x2.setTransform(dpr,0,0,dpr,0,0);
+  const n=new Date(),sod=new Date(n.getFullYear(),n.getMonth(),n.getDate()),sec=(n-sod)/1000,m=sec/60,mi=Math.floor(m);
+  for(let i=0;i<1440;i++){
+    const x=(i%C)*(cell+gap),y=Math.floor(i/C)*(cell+gap);
+    x2.fillStyle=i<mi?"#c9ced6":"#2fb88a";x2.fillRect(x,y,cell,cell);
+    if(i===mi){x2.fillStyle="#c9ced6";x2.fillRect(x,y,cell*(m-mi),cell);x2.strokeStyle="#f0b400";x2.lineWidth=1.5;x2.strokeRect(x,y,cell,cell);}
+  }
+  $("todaylbl").textContent="今日の1440分(1マス=1分)。今日はあと "+fmt((86400-sec)/3600)+"時間"+pad(Math.floor((86400-sec)%3600/60))+"分";
+}
+function loop(){drawToday();prog=1;draw();nums();setTimeout(()=>{raf=requestAnimationFrame(loop)},40);}
 function play(){
   cancelAnimationFrame(raf);prog=0;const t0=performance.now();
-  (function step(){const p=Math.min(1,(performance.now()-t0)/3000);prog=1-Math.pow(1-p,3);draw();nums();if(p<1)raf=requestAnimationFrame(step);else loop();})();
+  (function step(){const p=Math.min(1,(performance.now()-t0)/3000);prog=1-Math.pow(1-p,3);draw();drawToday();nums();if(p<1)raf=requestAnimationFrame(step);else loop();})();
 }
 window.addEventListener("resize",draw);play();
 </script>
