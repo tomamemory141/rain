@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>人生の残り</title>
+<style>
+  :root{--bg:#e9edf2;--card:#f3f6fb;--white:#fff;--ink:#222;--mute:#777;--line:#d6dce5;--org:#f2a33a;--orgbg:#fff1d6;--green:#2fb88a;--red:#e84040;--yel:#f0c000;--blue:#1ea0e6}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);font-family:"Yu Gothic UI","Meiryo",sans-serif;color:var(--ink);padding:20px 12px 40px;display:flex;justify-content:center}
+  .card{width:100%;max-width:420px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:12px 14px 14px;box-shadow:0 4px 18px rgba(0,0,0,.08)}
+  .head{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--mute);margin-bottom:8px}
+  .badge{background:var(--green);color:#fff;border-radius:14px;padding:3px 10px;font-size:11px;font-weight:bold}
+  .sum{display:flex;gap:10px;align-items:center;background:var(--orgbg);border:1px solid #f4d9a4;border-radius:12px;padding:8px 10px;margin-bottom:10px}
+  .score{border:3px solid var(--org);border-radius:10px;background:#fff;text-align:center;padding:2px 8px;min-width:68px}
+  .score b{display:block;font-size:26px;color:var(--org);line-height:1.1;font-variant-numeric:tabular-nums}
+  .score span{font-size:9px;color:var(--org)}
+  .sum p{margin:0;font-size:14px;font-weight:bold;line-height:1.4}
+  .sum small{font-size:11px;color:var(--mute);font-weight:normal}
+  .row{padding:6px 2px;border-top:1px solid var(--line)}
+  .row:first-of-type{border-top:0}
+  .rt{display:flex;justify-content:space-between;align-items:baseline}
+  .rt b{font-size:16px}
+  .rt em{font-style:normal;font-size:11px;color:var(--mute);margin-left:6px}
+  .rt .pc{font-size:14px;font-weight:bold;color:var(--org)}
+  .bar{height:9px;background:#d9dde3;border-radius:5px;overflow:hidden;margin-top:3px}
+  .bar i{display:block;height:100%;width:0;border-radius:5px}
+  .gr{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:10px;margin-top:8px}
+  canvas{width:100%;display:block}
+  .legend{display:flex;gap:12px;font-size:11px;color:var(--mute);margin-top:8px}
+  .legend b{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+  .tick{font-size:12px;color:var(--red);font-weight:bold;margin-top:8px;text-align:center;font-variant-numeric:tabular-nums}
+  .foot{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--mute);margin-top:8px}
+  button{background:var(--white);border:1px solid var(--line);border-radius:12px;padding:5px 10px;font-size:11px;cursor:pointer;color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="head"><span>人生のステータス</span><span class="badge" id="age"></span></div>
+  <div class="sum">
+    <div class="score"><b id="wk"></b><span>のこり(週)</span></div>
+    <p id="msg"></p>
+  </div>
+  <div class="row"><div class="rt"><span><b>週</b><em id="e_week"></em></span><span class="pc" id="p_week"></span></div><div class="bar"><i id="b_week" style="background:var(--red)"></i></div></div>
+  <div class="row"><div class="rt"><span><b>日</b><em id="e_day"></em></span><span class="pc" id="p_day"></span></div><div class="bar"><i id="b_day" style="background:var(--yel)"></i></div></div>
+  <div class="row"><div class="rt"><span><b>時間</b><em id="e_hour"></em></span><span class="pc" id="p_hour"></span></div><div class="bar"><i id="b_hour" style="background:var(--blue)"></i></div></div>
+  <div class="gr">
+    <canvas id="cv"></canvas>
+    <div class="legend"><span><b style="background:#c9ced6"></b>もう使った</span><span><b style="background:#f0b400"></b>いま</span><span><b style="background:#2fb88a"></b>これから</span></div>
+    <div class="tick" id="tick"></div>
+  </div>
+  <div class="foot"><span>1マス=約1週間 / 1行=1年</span><button onclick="play()">もう一度</button></div>
+</div>
+<script>
+const DAY=86400000,q=new URLSearchParams(location.search);
+// 誕生日はアドレスで渡す(?b=年-月-日)。ファイルには書かない
+const bp=(q.get("b")||"1990-01-01").split("-").map(Number),birth=new Date(bp[0],bp[1]-1,bp[2]),end=new Date(bp[0]+(+q.get("age")||80),bp[1]-1,bp[2]);
+const U={week:{n:"週",f:ms=>ms/DAY/7},day:{n:"日",f:ms=>ms/DAY},hour:{n:"時間",f:ms=>ms/3600000}};
+const cols=52,rows=80,cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+let prog=1,raf=0;
+const fmt=n=>Math.floor(n).toLocaleString(),pad=n=>String(n).padStart(2,"0"),$=id=>document.getElementById(id);
+function nums(){
+  const now=new Date();
+  for(const k in U){
+    const u=U[k],total=u.f(end-birth),lived=u.f(now-birth),left=total-lived,pc=lived/total*100;
+    $("e_"+k).textContent="のこり "+fmt(left)+" / 全部 "+fmt(total);
+    $("p_"+k).textContent=(pc*prog).toFixed(1)+"%";
+    $("b_"+k).style.width=(pc*prog)+"%";
+  }
+  const wl=U.week.f(end-now);
+  $("wk").textContent=fmt(wl);
+  $("age").textContent=Math.floor((now-birth)/DAY/365.2425)+"歳";
+  $("msg").innerHTML="人生の約"+(U.week.f(now-birth)/U.week.f(end-birth)*100).toFixed(0)+"%を使いました。<br><small>残りはいまも減っています</small>";
+  const ms=end-now,s=Math.floor(ms/1000);
+  $("tick").textContent="あと "+fmt(s/86400)+"日 "+pad(Math.floor(s%86400/3600))+":"+pad(Math.floor(s%3600/60))+":"+pad(s%60);
+}
+function draw(){
+  const dpr=window.devicePixelRatio||1,W=cv.clientWidth,gap=1.5,cell=(W-gap*(cols-1))/cols,H=rows*(cell+gap)-gap;
+  cv.width=W*dpr;cv.height=H*dpr;cv.style.height=H+"px";ctx.setTransform(dpr,0,0,dpr,0,0);
+  const pos=(new Date()-birth)/(end-birth)*rows*cols,used=pos*prog,pulse=.5+.5*Math.sin(performance.now()/180);
+  for(let i=0;i<rows*cols;i++){
+    const x=(i%cols)*(cell+gap),y=Math.floor(i/cols)*(cell+gap);
+    ctx.fillStyle=i<used?"#c9ced6":(prog>=1&&i===Math.floor(pos)?`rgba(240,180,0,${.4+.6*pulse})`:"#2fb88a");
+    ctx.fillRect(x,y,cell,cell);
+  }
+}
+function loop(){prog=1;draw();nums();setTimeout(()=>{raf=requestAnimationFrame(loop)},100);}
+function play(){
+  cancelAnimationFrame(raf);prog=0;const t0=performance.now();
+  (function step(){const p=Math.min(1,(performance.now()-t0)/3000);prog=1-Math.pow(1-p,3);draw();nums();if(p<1)raf=requestAnimationFrame(step);else loop();})();
+}
+window.addEventListener("resize",draw);play();
+</script>
+</body>
+</html>
