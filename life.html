@@ -44,6 +44,7 @@
   <div class="row"><div class="rt"><span><b>週</b><em id="e_week"></em></span><span class="pc" id="p_week"></span></div><div class="bar"><i id="b_week" style="background:var(--red)"></i></div></div>
   <div class="row"><div class="rt"><span><b>日</b><em id="e_day"></em></span><span class="pc" id="p_day"></span></div><div class="bar"><i id="b_day" style="background:var(--yel)"></i></div></div>
   <div class="row"><div class="rt"><span><b>時間</b><em id="e_hour"></em></span><span class="pc" id="p_hour"></span></div><div class="bar"><i id="b_hour" style="background:var(--blue)"></i></div></div>
+  <div class="row"><div class="rt"><span><b>秒</b><em id="e_sec"></em></span><span class="pc" id="p_sec"></span></div><div class="bar"><i id="b_sec" style="background:#8a63d2"></i></div></div>
   <div class="gr">
     <canvas id="cv"></canvas>
     <div class="legend"><span><b style="background:#c9ced6"></b>もう使った</span><span><b style="background:#f0b400"></b>いま</span><span><b style="background:#2fb88a"></b>これから</span></div>
@@ -55,7 +56,7 @@
 const DAY=86400000,q=new URLSearchParams(location.search);
 // 誕生日はアドレスで渡す(?b=年-月-日)。ファイルには書かない
 const bp=(q.get("b")||"1990-01-01").split("-").map(Number),birth=new Date(bp[0],bp[1]-1,bp[2]),end=new Date(bp[0]+(+q.get("age")||80),bp[1]-1,bp[2]);
-const U={week:{n:"週",f:ms=>ms/DAY/7},day:{n:"日",f:ms=>ms/DAY},hour:{n:"時間",f:ms=>ms/3600000}};
+const U={week:{n:"週",f:ms=>ms/DAY/7},day:{n:"日",f:ms=>ms/DAY},hour:{n:"時間",f:ms=>ms/3600000},sec:{n:"秒",f:ms=>ms/1000}};
 const cols=52,rows=80,cv=document.getElementById("cv"),ctx=cv.getContext("2d");
 let prog=1,raf=0;
 const fmt=n=>Math.floor(n).toLocaleString(),pad=n=>String(n).padStart(2,"0"),$=id=>document.getElementById(id);
@@ -78,13 +79,36 @@ function draw(){
   const dpr=window.devicePixelRatio||1,W=cv.clientWidth,gap=1.5,cell=(W-gap*(cols-1))/cols,H=rows*(cell+gap)-gap;
   cv.width=W*dpr;cv.height=H*dpr;cv.style.height=H+"px";ctx.setTransform(dpr,0,0,dpr,0,0);
   const pos=(new Date()-birth)/(end-birth)*rows*cols,used=pos*prog,pulse=.5+.5*Math.sin(performance.now()/180);
+  const now=performance.now()/1000,i0=Math.floor(pos),step=cell+gap;
   for(let i=0;i<rows*cols;i++){
-    const x=(i%cols)*(cell+gap),y=Math.floor(i/cols)*(cell+gap);
-    ctx.fillStyle=i<used?"#c9ced6":(prog>=1&&i===Math.floor(pos)?`rgba(240,180,0,${.4+.6*pulse})`:"#2fb88a");
-    ctx.fillRect(x,y,cell,cell);
+    const x=(i%cols)*step,y=Math.floor(i/cols)*step;
+    if(i<used){ctx.fillStyle="#c9ced6";ctx.fillRect(x,y,cell,cell);continue;}
+    ctx.fillStyle="#2fb88a";ctx.fillRect(x,y,cell,cell);
+    if(prog<1)continue;
+    const d=i-i0; // いまからの距離
+    if(d>=0&&d<cols*2){
+      // 「いま」に近いほど、ゆっくり波打って色が抜けていく
+      const a=(1-d/(cols*2))*(.5+.5*Math.sin(now*2.2-d*.35));
+      ctx.fillStyle=`rgba(201,206,214,${a*.85})`;ctx.fillRect(x,y,cell,cell);
+    }
+    // 火の粉のように、ときどき先のマスがちらっと灰色になる
+    const h=Math.sin(i*12.9898+Math.floor(now*3)*78.233)*43758.5453;
+    if(d>0&&d<cols*6&&(h-Math.floor(h))<.012*(1-d/(cols*6))*6){ctx.fillStyle="rgba(201,206,214,.9)";ctx.fillRect(x,y,cell,cell);}
+  }
+  if(prog>=1){
+    // いまのマス: 黄色く脈打つ
+    const x=(i0%cols)*step,y=Math.floor(i0/cols)*step;
+    ctx.fillStyle=`rgba(240,180,0,${.5+.5*pulse})`;ctx.fillRect(x,y,cell,cell);
+    ctx.strokeStyle=`rgba(240,180,0,${.6*(1-(now%1))})`;ctx.lineWidth=1.5;
+    const g=(now%1)*cell*2;ctx.strokeRect(x-g,y-g,cell+g*2,cell+g*2);
+    // 1秒ごとに、灰色のかけらが「いま」のマスから落ちていく
+    for(let k=0;k<3;k++){
+      const t=(now*0.5+k/3)%1,px=x+cell/2+Math.sin((k+1)*5.7+Math.floor(now*0.5+k/3)*3.1)*cell*2,py=y+cell+t*step*6;
+      ctx.fillStyle=`rgba(150,156,166,${1-t})`;ctx.fillRect(px,py,cell*.7,cell*.7);
+    }
   }
 }
-function loop(){prog=1;draw();nums();setTimeout(()=>{raf=requestAnimationFrame(loop)},100);}
+function loop(){prog=1;draw();nums();setTimeout(()=>{raf=requestAnimationFrame(loop)},40);}
 function play(){
   cancelAnimationFrame(raf);prog=0;const t0=performance.now();
   (function step(){const p=Math.min(1,(performance.now()-t0)/3000);prog=1-Math.pow(1-p,3);draw();nums();if(p<1)raf=requestAnimationFrame(step);else loop();})();
