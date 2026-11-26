@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>一日の記録</title>
+<style>
+  :root{--bg:#fff;--card:#f3f6fb;--line:#d6dce5;--ink:#1b2733;--mute:#5d6b79;--blue:#1c7ed6;--red:#e03131}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Yu Gothic UI","Meiryo",system-ui,sans-serif;padding:6px 8px}
+  .card{background:var(--card);border-radius:14px;padding:8px 10px 10px}
+  .bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-bottom:6px}
+  .date{font-weight:700;font-size:15px;margin-right:auto}
+  button,select{font:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);padding:4px 12px;cursor:pointer}
+  button.save{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:700}
+  button.reset{color:var(--red);border-color:#f0b8b8}
+  .msg{font-size:12px;color:var(--mute);min-width:90px}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  @media(max-width:440px){.cols{grid-template-columns:1fr}}
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden;table-layout:fixed}
+  th,td{border:1px solid var(--line);padding:0;font-size:12px}
+  th{background:#eef1f6;color:var(--mute);font-weight:600;padding:3px 4px;text-align:left}
+  td.t{width:44px;text-align:center;color:var(--mute);background:#f8f9fb;font-variant-numeric:tabular-nums}
+  td input{width:100%;border:0;background:transparent;font:inherit;font-size:12px;padding:3px 5px;height:22px;color:var(--ink);outline:none}
+  td input:focus{background:#eef6ff}
+  td.now{background:#fff6d6}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="bar">
+    <span class="date" id="date"></span>
+    <select id="past" title="保存した日を開く"><option value="">過去の日</option></select>
+    <button class="save" id="save">保存</button>
+    <button class="reset" id="reset">リセット</button>
+    <span class="msg" id="msg"></span>
+  </div>
+  <div class="cols" id="cols"></div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const S=[];for(let m=7*60;m<24*60;m+=30)S.push(Math.floor(m/60)+":"+String(m%60).padStart(2,"0"));
+const ymd=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const W="日月火水木金土";
+let cur=ymd(new Date());   // いま開いている日
+const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v);return true}catch(e){return false}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+
+// 表を作る(左半分 7:00〜15:00、右半分 15:30〜23:30)
+const half=Math.ceil(S.length/2);
+$("cols").innerHTML=[S.slice(0,half),S.slice(half)].map(g=>'<table><colgroup><col style="width:44px"><col><col></colgroup><tr><th>時間</th><th>予定</th><th>実際</th></tr>'+g.map(t=>'<tr><td class="t" data-t="'+t+'">'+t+'</td><td><input data-k="p'+t+'" autocomplete="off"></td><td><input data-k="a'+t+'" autocomplete="off"></td></tr>').join("")+'</table>').join("");
+
+const inputs=[...document.querySelectorAll("input[data-k]")];
+const read=()=>{const o={};inputs.forEach(i=>{if(i.value)o[i.dataset.k]=i.value});return o};
+const fill=o=>inputs.forEach(i=>{i.value=(o&&o[i.dataset.k])||""});
+function label(k){const d=new Date(k+"T00:00:00");return d.getFullYear()+"年"+(d.getMonth()+1)+"月"+d.getDate()+"日("+W[d.getDay()]+")"}
+function say(t){$("msg").textContent=t;clearTimeout(say.t);say.t=setTimeout(()=>$("msg").textContent="",4000)}
+function savedDates(){const a=[];try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith("diary:day:"))a.push(k.slice(10))}}catch(e){}return a.sort().reverse()}
+function refreshPast(){
+  const a=savedDates(),today=ymd(new Date());
+  $("past").innerHTML='<option value="">過去の日</option>'+(cur!==today?'<option value="'+today+'">今日に戻る</option>':"")+a.map(k=>'<option value="'+k+'">'+label(k)+'</option>').join("");
+  $("past").value="";
+}
+function show(k){cur=k;$("date").textContent=label(k);const s=ls.get("diary:day:"+k);const dr=JSON.parse(ls.get("diary:draft:"+k)||"null");
+  // 下書きがその日のものなら、保存前の入力を優先して戻す
+  fill(dr?dr.data:(s?JSON.parse(s):{}));refreshPast();mark()}
+function draft(){ls.set("diary:draft:"+cur,JSON.stringify({date:cur,data:read()}))}
+function mark(){ // いまの時間帯の行に色をつける(今日のときだけ)
+  document.querySelectorAll("td.t").forEach(td=>td.classList.remove("now"));
+  if(cur!==ymd(new Date()))return;
+  const n=new Date(),m=n.getHours()*60+(n.getMinutes()>=30?30:0),t=Math.floor(m/60)+":"+String(m%60).padStart(2,"0");
+  const td=document.querySelector('td.t[data-t="'+t+'"]');if(td)td.classList.add("now");
+}
+inputs.forEach(i=>i.addEventListener("input",draft));
+$("save").onclick=()=>{
+  const ok=ls.set("diary:day:"+cur,JSON.stringify(read()));draft();refreshPast();
+  const n=new Date();say(ok?"保存しました "+n.getHours()+":"+String(n.getMinutes()).padStart(2,"0"):"保存できませんでした");
+};
+$("reset").onclick=()=>{
+  if(!confirm("いまの表の入力を、すべて空にします。(保存した記録は消えません)よろしいですか?"))return;
+  fill({});ls.del("diary:draft:"+cur);say("リセットしました");
+};
+$("past").onchange=e=>{const k=e.target.value;if(!k)return;if(k===cur){ls.del("diary:draft:"+cur)}else{draft()}show(k)};
+show(cur);
+setInterval(mark,30000);
+</script>
+</body>
+</html>
