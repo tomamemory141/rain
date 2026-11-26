@@ -11,13 +11,15 @@
   .card{background:var(--card);border-radius:14px;padding:8px 10px 10px}
   .bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-bottom:6px}
   .date{font-weight:700;font-size:15px;margin-right:auto}
-  button,select{font:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);padding:4px 12px;cursor:pointer}
+  button,select{font:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);padding:4px 9px;cursor:pointer;white-space:nowrap}
   button.save{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:700}
   button.reset{color:var(--red);border-color:#f0b8b8}
   .head{padding:2px 130px 6px 4px}  /* 右上にNotionの小さな道具が出るので、あけておく */
   .hd{font-size:20px;font-weight:700}
   .hd .blue{color:var(--blue)}
   .hs{font-size:12px;color:var(--mute);font-weight:600;min-height:16px}
+  .nav{display:flex;flex:1 1 200px;gap:4px;min-width:0}
+  .nav select{flex:1 1 auto;min-width:0}
   .msg{font-size:12px;color:var(--mute);min-width:90px}
   .cols{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   @media(max-width:440px){.cols{grid-template-columns:1fr}}
@@ -34,9 +36,8 @@
 <div class="head"><div class="hd" id="date"></div><div class="hs" id="allday"></div></div>
 <div class="card">
   <div class="bar">
-    <span style="margin-right:auto"></span>
-    <select id="past" title="保存した日を開く"><option value="">過去の日</option></select>
-    <button id="imp" style="display:none">予定を取り込む</button>
+    <div class="nav"><button id="prev" title="前の日">‹ 前日</button><select id="past" title="保存した日を開く"><option value="">過去の日</option></select><button id="next" title="次の日">翌日 ›</button><button id="tod" title="今日">今日</button></div>
+    <button id="imp" style="display:none">予定取込</button>
     <button class="save" id="save">保存</button>
     <button class="reset" id="reset">リセット</button>
     <span class="msg" id="msg"></span>
@@ -115,6 +116,9 @@ $("reset").onclick=()=>{
   if(!confirm("いまの表の入力を、すべて空にします。(保存した記録は消えません)よろしいですか?"))return;
   fill({});ls.del("diary:draft:"+cur);say("リセットしました");
 };
+function go(d){draft();show(d)}
+const shift=n=>{const d=new Date(cur+"T00:00:00");d.setDate(d.getDate()+n);return ymd(d)};
+$("prev").onclick=()=>go(shift(-1));$("next").onclick=()=>go(shift(1));$("tod").onclick=()=>go(ymd(new Date()));
 $("past").onchange=e=>{const k=e.target.value;if(!k)return;if(k===cur){ls.del("diary:draft:"+cur)}else{draft()}show(k)};
 show(cur);
 setInterval(mark,30000);
