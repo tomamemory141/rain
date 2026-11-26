@@ -50,8 +50,6 @@
   <div class="bar">
     <div class="nav"><button id="prev" title="前の日">‹ 前日</button><select id="past" title="保存した日を開く"><option value="">過去の日</option></select><button id="next" title="次の日">翌日 ›</button><button id="tod" title="今日">今日</button></div>
     <button id="imp" style="display:none">予定取込</button>
-    <button class="save" id="save">保存</button>
-    <button class="reset" id="reset">リセット</button>
     <span class="msg" id="msg"></span>
   </div>
   <div class="note"><b>感想</b><input type="text" data-k="note" placeholder="今日の感想(一行)" autocomplete="off"></div>
@@ -84,7 +82,14 @@ function refreshPast(){
 function show(k){cur=k;{const d=new Date(k+"T00:00:00"),t=(d.getMonth()+1)+"/"+d.getDate()+"("+W[d.getDay()]+")";$("date").innerHTML='<span class="blue">'+(k===ymd(new Date())?"今日 ":"")+t+'</span> <span id="cnt"></span><span class="hs" id="allday"></span>';$("allday").textContent=""}const s=ls.get("diary:day:"+k);const dr=JSON.parse(ls.get("diary:draft:"+k)||"null");
   // 下書きがその日のものなら、保存前の入力を優先して戻す
   fill(dr?dr.data:(s?JSON.parse(s):{}));refreshPast();mark();if(GSRC)importCal(false,!ls.get("diary:cal:"+k))}
-function draft(){ls.set("diary:draft:"+cur,JSON.stringify({date:cur,data:read()}))}
+// 書くたびに自動で保存する(保存ボタンはなし)。何も書いてない日は、保存した日の一覧には入れない
+function draft(){
+  const d=read(),has=Object.keys(d).length>0,key="diary:day:"+cur,had=ls.get(key)!==null;
+  const ok=ls.set("diary:draft:"+cur,JSON.stringify({date:cur,data:d}));
+  if(has)ls.set(key,JSON.stringify(d));else ls.del(key);
+  if(has!==had)refreshPast();
+  say(ok?"自動で保存しました":"保存できませんでした");
+}
 function mark(){ // いまの時間帯の行に色をつける(今日のときだけ)
   document.querySelectorAll("td.t").forEach(td=>td.classList.remove("now"));
   if(cur!==ymd(new Date()))return;
@@ -167,14 +172,6 @@ async function importCal(manual,fill){
 }
 if(GSRC)$("imp").style.display="";
 $("imp").onclick=()=>importCal(true,true);
-$("save").onclick=()=>{
-  const ok=ls.set("diary:day:"+cur,JSON.stringify(read()));draft();refreshPast();
-  const n=new Date();say(ok?"保存しました "+n.getHours()+":"+String(n.getMinutes()).padStart(2,"0"):"保存できませんでした");
-};
-$("reset").onclick=()=>{
-  if(!confirm("いまの表の入力を、すべて空にします。(保存した記録は消えません)よろしいですか?"))return;
-  fill({});ls.del("diary:draft:"+cur);say("リセットしました");
-};
 function go(d){draft();show(d)}
 const shift=n=>{const d=new Date(cur+"T00:00:00");d.setDate(d.getDate()+n);return ymd(d)};
 $("prev").onclick=()=>go(shift(-1));$("next").onclick=()=>go(shift(1));$("tod").onclick=()=>go(ymd(new Date()));
