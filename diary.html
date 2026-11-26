@@ -29,6 +29,14 @@
   td.t{width:44px;text-align:center;color:var(--mute);background:#f8f9fb;font-variant-numeric:tabular-nums}
   td input{width:100%;border:0;background:transparent;font:inherit;font-size:12px;padding:3px 5px;height:22px;color:var(--ink);outline:none}
   td input:focus{background:#eef6ff}
+  td{position:relative}
+  td.blk{background:rgba(28,126,214,.13)}
+  td.blk.a{background:rgba(47,184,138,.16)}
+  td.blk.m,td.blk.s{border-bottom-color:transparent}
+  td.blk.m input{color:#8aa0b5}
+  .grip{position:absolute;left:0;right:0;bottom:-1px;height:8px;cursor:ns-resize;display:none;touch-action:none;z-index:3;background:linear-gradient(to bottom,transparent,rgba(28,126,214,.55))}
+  td.a .grip{background:linear-gradient(to bottom,transparent,rgba(47,184,138,.7))}
+  td:hover .grip,.grip.on{display:block}
   td.now{background:#fff6d6}
 </style>
 </head>
@@ -59,7 +67,7 @@ $("cols").innerHTML=[S.slice(0,half),S.slice(half)].map(g=>'<table><colgroup><co
 
 const inputs=[...document.querySelectorAll("input[data-k]")];
 const read=()=>{const o={};inputs.forEach(i=>{if(i.value)o[i.dataset.k]=i.value});return o};
-const fill=o=>inputs.forEach(i=>{i.value=(o&&o[i.dataset.k])||""});
+const fill=o=>{inputs.forEach(i=>{i.value=(o&&o[i.dataset.k])||""});if(window.decorate)decorate()};
 function label(k){const d=new Date(k+"T00:00:00");return d.getFullYear()+"年"+(d.getMonth()+1)+"月"+d.getDate()+"日("+W[d.getDay()]+")"}
 function say(t){$("msg").textContent=t;clearTimeout(say.t);say.t=setTimeout(()=>$("msg").textContent="",4000)}
 function savedDates(){const a=[];try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith("diary:day:"))a.push(k.slice(10))}}catch(e){}return a.sort().reverse()}
@@ -78,7 +86,46 @@ function mark(){ // いまの時間帯の行に色をつける(今日のとき�
   const n=new Date(),m=n.getHours()*60+(n.getMinutes()>=30?30:0),t=Math.floor(m/60)+":"+String(m%60).padStart(2,"0");
   const td=document.querySelector('td.t[data-t="'+t+'"]');if(td)td.classList.add("now");
 }
-inputs.forEach(i=>i.addEventListener("input",draft));
+// 入れた予定(文字の入ったマス)を、下にドラッグして伸ばす。伸ばした分のマスには「↓」が入る
+const cellsOf=pre=>S.map(t=>document.querySelector('input[data-k="'+pre+t+'"]'));
+const tabOf=i=>i<half?0:1, tabEnd=i=>tabOf(i)===0?half-1:S.length-1;
+let drag=null;
+function decorate(){
+  const olds=[...document.querySelectorAll(".grip")];const reuse=drag?drag.grip:null;
+  document.querySelectorAll("td.blk").forEach(td=>td.classList.remove("blk","s","m","e","a"));
+  for(const pre of["p","a"]){
+    const c=cellsOf(pre);
+    for(let i=0;i<c.length;i++){
+      const v=c[i].value;if(!v||v==="↓")continue;
+      let j=i+1;while(j<c.length&&tabOf(j)===tabOf(i)&&c[j].value==="↓")j++;
+      for(let k=i;k<j;k++){const td=c[k].parentElement;td.classList.add("blk");if(pre==="a")td.classList.add("a");td.classList.add(k===j-1?"e":(k===i?"s":"m"))}
+      const endTd=c[j-1].parentElement;let g=(reuse&&drag.pre===pre&&drag.i0===i)?reuse:null;
+      if(!g){g=document.createElement("div");g.className="grip";g.title="下にドラッグして伸ばす";bindGrip(g,pre,i)}
+      g._pre=pre;g._i0=i;g._len=j-i;endTd.appendChild(g);olds.splice(olds.indexOf(g),1);
+      i=j-1;
+    }
+  }
+  olds.forEach(g=>{if(g!==reuse)g.remove()});
+}
+function bindGrip(g,pre,i0){
+  g.addEventListener("pointerdown",e=>{
+    e.preventDefault();g.setPointerCapture(e.pointerId);g.classList.add("on");
+    const td=g.parentElement,h=td.getBoundingClientRect().height||23;
+    drag={grip:g,pre:g._pre,i0:g._i0,L:g._len,y0:e.clientY,h};
+  });
+  g.addEventListener("pointermove",e=>{
+    if(!drag||drag.grip!==g)return;
+    const c=cellsOf(drag.pre),d=Math.round((e.clientY-drag.y0)/drag.h);let L=Math.max(1,drag.L+d);
+    L=Math.min(L,tabEnd(drag.i0)-drag.i0+1);
+    for(let k=drag.i0+1;k<drag.i0+L;k++){const v=c[k].value;if(v&&v!=="↓"){L=k-drag.i0;break}}
+    for(let k=drag.i0+1;k<drag.i0+L;k++)c[k].value="↓";
+    let k=drag.i0+L;while(k<c.length&&tabOf(k)===tabOf(drag.i0)&&c[k].value==="↓"){c[k].value="";k++}
+    decorate();
+  });
+  const end=()=>{if(!drag||drag.grip!==g)return;g.classList.remove("on");drag=null;draft();decorate()};
+  g.addEventListener("pointerup",end);g.addEventListener("pointercancel",end);
+}
+inputs.forEach(i=>i.addEventListener("input",()=>{draft();decorate()}));
 // Googleカレンダーの予定を、その日の「予定」の空いているマスに入れる
 const hmOf=d=>{const p=new Intl.DateTimeFormat("sv-SE",{timeZone:"Asia/Tokyo",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).format(d);return +p.slice(0,2)*60+ +p.slice(3,5)};
 async function importCal(manual,fill){
@@ -102,7 +149,7 @@ async function importCal(manual,fill){
         if(inp&&!inp.value){inp.value=(m<=sm&&sm<m+30)?e.t:"↓";n++}
       }
     });
-    if(fill){draft();ls.set("diary:cal:"+day,"1")}
+    decorate();if(fill){draft();ls.set("diary:cal:"+day,"1")}
     if(manual)say(n?"取り込みました":"取り込む予定がありません");
   }catch(err){if(manual)say("取り込めませんでした")}
 }
