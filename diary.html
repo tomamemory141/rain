@@ -109,21 +109,28 @@ function decorate(){
 }
 function bindGrip(g,pre,i0){
   g.addEventListener("pointerdown",e=>{
-    e.preventDefault();g.setPointerCapture(e.pointerId);g.classList.add("on");
+    e.preventDefault();
+    // 持ち手は伸ばすたびに別のマスへ移るので、動きの受け取りは、動かない「ページ全体」にする
+    try{document.documentElement.setPointerCapture(e.pointerId)}catch(_){}
+    g.classList.add("on");
     const td=g.parentElement,h=td.getBoundingClientRect().height||23;
-    drag={grip:g,pre:g._pre,i0:g._i0,L:g._len,y0:e.clientY,h};
+    drag={grip:g,pre:g._pre,i0:g._i0,L:g._len,y0:e.clientY,h,id:e.pointerId};
+    window.addEventListener("pointermove",onMove);window.addEventListener("pointerup",onEnd);window.addEventListener("pointercancel",onEnd);
   });
-  g.addEventListener("pointermove",e=>{
-    if(!drag||drag.grip!==g)return;
-    const c=cellsOf(drag.pre),d=Math.round((e.clientY-drag.y0)/drag.h);let L=Math.max(1,drag.L+d);
-    L=Math.min(L,tabEnd(drag.i0)-drag.i0+1);
-    for(let k=drag.i0+1;k<drag.i0+L;k++){const v=c[k].value;if(v&&v!=="↓"){L=k-drag.i0;break}}
-    for(let k=drag.i0+1;k<drag.i0+L;k++)c[k].value="↓";
-    let k=drag.i0+L;while(k<c.length&&tabOf(k)===tabOf(drag.i0)&&c[k].value==="↓"){c[k].value="";k++}
-    decorate();
-  });
-  const end=()=>{if(!drag||drag.grip!==g)return;g.classList.remove("on");drag=null;draft();decorate()};
-  g.addEventListener("pointerup",end);g.addEventListener("pointercancel",end);
+}
+function onMove(e){
+  if(!drag)return;
+  const c=cellsOf(drag.pre),d=Math.round((e.clientY-drag.y0)/drag.h);let L=Math.max(1,drag.L+d);
+  L=Math.min(L,tabEnd(drag.i0)-drag.i0+1);
+  for(let k=drag.i0+1;k<drag.i0+L;k++){const v=c[k].value;if(v&&v!=="↓"){L=k-drag.i0;break}}
+  for(let k=drag.i0+1;k<drag.i0+L;k++)c[k].value="↓";
+  let k=drag.i0+L;while(k<c.length&&tabOf(k)===tabOf(drag.i0)&&c[k].value==="↓"){c[k].value="";k++}
+  decorate();
+}
+function onEnd(){
+  window.removeEventListener("pointermove",onMove);window.removeEventListener("pointerup",onEnd);window.removeEventListener("pointercancel",onEnd);
+  if(!drag)return;drag.grip.classList.remove("on");try{document.documentElement.releasePointerCapture(drag.id)}catch(_){}
+  drag=null;draft();decorate();
 }
 inputs.forEach(i=>i.addEventListener("input",()=>{draft();decorate()}));
 // Googleカレンダーの予定を、その日の「予定」の空いているマスに入れる
