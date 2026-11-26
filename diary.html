@@ -28,10 +28,10 @@
   th{background:#eef1f6;color:var(--mute);font-weight:600;padding:3px 4px;text-align:left}
   td.t{width:44px;text-align:center;color:var(--mute);background:#f8f9fb;font-variant-numeric:tabular-nums}
   td input{width:100%;border:0;background:transparent;font:inherit;font-size:12px;padding:1px 5px;height:19px;color:var(--ink);outline:none}
-  .note{display:flex;gap:8px;align-items:flex-start;margin-top:6px}
-  .note b{font-size:12px;color:var(--mute);padding-top:5px;white-space:nowrap}
-  .note textarea{flex:1;min-width:0;height:34px;resize:vertical;font:inherit;font-size:12px;line-height:1.4;padding:4px 7px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);outline:none}
-  .note textarea:focus{background:#eef6ff}
+  .note{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+  .note b{font-size:12px;color:var(--mute);white-space:nowrap}
+  .note input{flex:1;min-width:0;height:26px;font:inherit;font-size:13px;padding:2px 8px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);outline:none}
+  .note input:focus{background:#eef6ff}
   td input:focus{background:#eef6ff}
   td{position:relative}
   td.blk{background:rgba(28,126,214,.13)}
@@ -54,8 +54,8 @@
     <button class="reset" id="reset">リセット</button>
     <span class="msg" id="msg"></span>
   </div>
+  <div class="note"><b>感想</b><input type="text" data-k="note" placeholder="今日の感想(一行)" autocomplete="off"></div>
   <div class="cols" id="cols"></div>
-  <div class="note"><b>感想</b><textarea data-k="note" placeholder="今日の感想" autocomplete="off"></textarea></div>
 </div>
 <script>
 const $=id=>document.getElementById(id);
