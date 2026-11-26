@@ -27,7 +27,11 @@
   th,td{border:1px solid var(--line);padding:0;font-size:12px}
   th{background:#eef1f6;color:var(--mute);font-weight:600;padding:3px 4px;text-align:left}
   td.t{width:44px;text-align:center;color:var(--mute);background:#f8f9fb;font-variant-numeric:tabular-nums}
-  td input{width:100%;border:0;background:transparent;font:inherit;font-size:12px;padding:3px 5px;height:24px;color:var(--ink);outline:none}
+  td input{width:100%;border:0;background:transparent;font:inherit;font-size:12px;padding:1px 5px;height:19px;color:var(--ink);outline:none}
+  .note{display:flex;gap:8px;align-items:flex-start;margin-top:6px}
+  .note b{font-size:12px;color:var(--mute);padding-top:5px;white-space:nowrap}
+  .note textarea{flex:1;min-width:0;height:34px;resize:vertical;font:inherit;font-size:12px;line-height:1.4;padding:4px 7px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);outline:none}
+  .note textarea:focus{background:#eef6ff}
   td input:focus{background:#eef6ff}
   td{position:relative}
   td.blk{background:rgba(28,126,214,.13)}
@@ -51,6 +55,7 @@
     <span class="msg" id="msg"></span>
   </div>
   <div class="cols" id="cols"></div>
+  <div class="note"><b>感想</b><textarea data-k="note" placeholder="今日の感想" autocomplete="off"></textarea></div>
 </div>
 <script>
 const $=id=>document.getElementById(id);
@@ -65,7 +70,7 @@ const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k
 const half=Math.ceil(S.length/2);
 $("cols").innerHTML=[S.slice(0,half),S.slice(half)].map(g=>'<table><colgroup><col style="width:44px"><col><col></colgroup><tr><th>時間</th><th>予定</th><th>実際</th></tr>'+g.map(t=>'<tr><td class="t" data-t="'+t+'">'+t+'</td><td><input data-k="p'+t+'" autocomplete="off"></td><td><input data-k="a'+t+'" autocomplete="off"></td></tr>').join("")+'</table>').join("");
 
-const inputs=[...document.querySelectorAll("input[data-k]")];
+const inputs=[...document.querySelectorAll("input[data-k],textarea[data-k]")];
 const read=()=>{const o={};inputs.forEach(i=>{if(i.value)o[i.dataset.k]=i.value});return o};
 const fill=o=>{inputs.forEach(i=>{i.value=(o&&o[i.dataset.k])||""});if(window.decorate)decorate()};
 function label(k){const d=new Date(k+"T00:00:00");return d.getFullYear()+"年"+(d.getMonth()+1)+"月"+d.getDate()+"日("+W[d.getDay()]+")"}
