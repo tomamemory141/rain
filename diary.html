@@ -8,16 +8,16 @@
   :root{--bg:#fff;--card:#f3f6fb;--line:#d6dce5;--ink:#1b2733;--mute:#5d6b79;--blue:#1c7ed6;--red:#e03131}
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:"Yu Gothic UI","Meiryo",system-ui,sans-serif;padding:6px 8px}
-  .card{background:var(--card);border-radius:14px;padding:8px 10px 10px}
+  .card{background:var(--card);border-radius:16px;padding:10px 14px 10px}
   .bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-bottom:6px}
   .date{font-weight:700;font-size:15px;margin-right:auto}
   button,select{font:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);padding:4px 9px;cursor:pointer;white-space:nowrap}
   button.save{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:700}
   button.reset{color:var(--red);border-color:#f0b8b8}
-  .head{padding:2px 130px 6px 4px}  /* 右上にNotionの小さな道具が出るので、あけておく */
-  .hd{font-size:20px;font-weight:700}
-  .hd .blue{color:var(--blue)}
-  .hs{font-size:12px;color:var(--mute);font-weight:600;min-height:16px}
+  .head{padding:0 130px 8px 4px}  /* 右上にNotionの小さな道具が出るので、あけておく。大きさはカレンダーの上の一行と同じ */
+  .hd{font-size:19px;font-weight:600;line-height:1.45}
+  .hd .blue{color:#2b7fd0;font-weight:700;margin-right:6px}
+  .hs{font-size:15px;color:var(--mute);font-weight:400;margin-left:16px}
   .nav{display:flex;flex:1 1 200px;gap:4px;min-width:0}
   .nav select{flex:1 1 auto;min-width:0}
   .msg{font-size:12px;color:var(--mute);min-width:90px}
@@ -27,7 +27,7 @@
   th,td{border:1px solid var(--line);padding:0;font-size:12px}
   th{background:#eef1f6;color:var(--mute);font-weight:600;padding:3px 4px;text-align:left}
   td.t{width:44px;text-align:center;color:var(--mute);background:#f8f9fb;font-variant-numeric:tabular-nums}
-  td input{width:100%;border:0;background:transparent;font:inherit;font-size:12px;padding:3px 5px;height:22px;color:var(--ink);outline:none}
+  td input{width:100%;border:0;background:transparent;font:inherit;font-size:12px;padding:3px 5px;height:24px;color:var(--ink);outline:none}
   td input:focus{background:#eef6ff}
   td{position:relative}
   td.blk{background:rgba(28,126,214,.13)}
@@ -41,7 +41,7 @@
 </style>
 </head>
 <body>
-<div class="head"><div class="hd" id="date"></div><div class="hs" id="allday"></div></div>
+<div class="head"><div class="hd" id="date"></div></div>
 <div class="card">
   <div class="bar">
     <div class="nav"><button id="prev" title="前の日">‹ 前日</button><select id="past" title="保存した日を開く"><option value="">過去の日</option></select><button id="next" title="次の日">翌日 ›</button><button id="tod" title="今日">今日</button></div>
@@ -76,7 +76,7 @@ function refreshPast(){
   $("past").innerHTML='<option value="">過去の日</option>'+(cur!==today?'<option value="'+today+'">今日に戻る</option>':"")+a.map(k=>'<option value="'+k+'">'+label(k)+'</option>').join("");
   $("past").value="";
 }
-function show(k){cur=k;{const d=new Date(k+"T00:00:00"),t=(d.getMonth()+1)+"/"+d.getDate()+"("+W[d.getDay()]+")";$("date").innerHTML='<span class="blue">'+(k===ymd(new Date())?"今日 ":"")+t+'</span> <span id="cnt"></span>';$("allday").textContent=""}const s=ls.get("diary:day:"+k);const dr=JSON.parse(ls.get("diary:draft:"+k)||"null");
+function show(k){cur=k;{const d=new Date(k+"T00:00:00"),t=(d.getMonth()+1)+"/"+d.getDate()+"("+W[d.getDay()]+")";$("date").innerHTML='<span class="blue">'+(k===ymd(new Date())?"今日 ":"")+t+'</span> <span id="cnt"></span><span class="hs" id="allday"></span>';$("allday").textContent=""}const s=ls.get("diary:day:"+k);const dr=JSON.parse(ls.get("diary:draft:"+k)||"null");
   // 下書きがその日のものなら、保存前の入力を優先して戻す
   fill(dr?dr.data:(s?JSON.parse(s):{}));refreshPast();mark();if(GSRC)importCal(false,!ls.get("diary:cal:"+k))}
 function draft(){ls.set("diary:draft:"+cur,JSON.stringify({date:cur,data:read()}))}
