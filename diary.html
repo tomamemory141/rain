@@ -55,7 +55,7 @@
 <script>
 const $=id=>document.getElementById(id);
 const Q=new URLSearchParams(location.search),GSRC=Q.get("g"),GKEY=Q.get("k");   // Googleカレンダーの取り込み用(アドレスで渡す)
-const S=[];for(let m=7*60;m<24*60;m+=30)S.push(Math.floor(m/60)+":"+String(m%60).padStart(2,"0"));
+const S=[];for(let m=6*60+30;m<=23*60;m+=30)S.push(Math.floor(m/60)+":"+String(m%60).padStart(2,"0"));
 const ymd=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 const W="日月火水木金土";
 let cur=ymd(new Date());   // いま開いている日
@@ -150,7 +150,7 @@ async function importCal(manual,fill){
     let n=0;
     if(fill)ev.filter(e=>!e.a).sort((x,y)=>x.s-y.s).forEach(e=>{
       const a=Math.max(e.s,t0),b=Math.min(e.e,t1),sm=hmOf(new Date(a)),em=(b>=t1?1440:hmOf(new Date(b)));
-      for(let m=7*60;m<24*60;m+=30){
+      for(let m=6*60+30;m<=23*60;m+=30){
         if(m+30<=sm||m>=em)continue;
         const t=Math.floor(m/60)+":"+String(m%60).padStart(2,"0"),inp=document.querySelector('input[data-k="p'+t+'"]');
         if(inp&&!inp.value){inp.value=(m<=sm&&sm<m+30)?e.t:"↓";n++}
