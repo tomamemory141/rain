@@ -2,94 +2,231 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>人生グラフ</title>
 <style>
-/* 今日・今週・今月・今年・人生が、どれだけ進んだかを棒で出す。誕生日は ?b=1992-12-01 のようにアドレスで渡す(ページの中には書かない) */
-:root { --fg: #1b2733; --sub: #5d6b79; --font: -apple-system, "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif; color-scheme: light }
-* { box-sizing: border-box }
-html, body { margin: 0 }
-body { background: #fff; color: var(--fg); font-family: var(--font); padding: 6px 12px; min-height: 100vh }
-.wrap { max-width: 560px; display: grid; gap: 5px; background: #f3f6fa; border-radius: 16px; padding: 8px 14px 6px }
-.row { display: grid; grid-template-columns: 128px 1fr 56px 126px; align-items: center; gap: 8px }
-.row .n { font-size: 15px; font-weight: 700; white-space: nowrap }
-.row .n small { font-size: 11px; font-weight: 400; color: var(--sub); margin-left: 5px }
-.row .pct { font-size: 15px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 700 }
-.bar { position: relative; height: 12px; border-radius: 7px; background: rgba(20,40,60,.09); overflow: hidden }
-.bar b { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; border-left: 1px solid rgba(20,30,45,.35); border-right: 1px solid rgba(255,255,255,.7) }
-.bar i { display: block; height: 100%; border-radius: 7px; background: var(--c); min-width: 3px }
-.left { font-size: 12px; color: var(--sub); white-space: nowrap }
-.cd { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 10px; padding: 3px 0 0; border-top: 1px solid rgba(20,40,60,.14) }
-.cd .n { font-size: 15px; font-weight: 700; flex: 1 1 auto; white-space: nowrap }
-.cd .memo { width: 100%; font-size: 11px; color: var(--sub); line-height: 1.4 }
-.cd .n small { font-size: 11px; font-weight: 400; color: var(--sub); margin-left: 6px }
-.cd .d { font-size: 22px; font-weight: 300; font-variant-numeric: tabular-nums }
-.cd .u { font-size: 12px; color: var(--sub); white-space: nowrap }
-.cd .dt { font-size: 11px; color: var(--sub); width: 100% }
-.cap { font-size: 12px; color: var(--sub); padding-bottom: 4px; border-bottom: 1px solid rgba(20,40,60,.14); margin-bottom: 0 }
-.foot { font-size: 10px; color: var(--sub); text-align: right; margin-top: 4px }
+  :root{--bg:#e9edf2;--card:#f3f6fb;--white:#fff;--ink:#222;--mute:#777;--line:#d6dce5;--org:#f2a33a;--orgbg:#fff1d6;--green:#2fb88a;--red:#e84040;--yel:#f0c000;--blue:#1ea0e6}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);font-family:"Yu Gothic UI","Meiryo",sans-serif;color:var(--ink);padding:20px 12px 40px;display:flex;justify-content:center}
+  .card{width:100%;max-width:420px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:5px 10px 5px;box-shadow:0 4px 18px rgba(0,0,0,.08)}
+  .head{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--mute);margin-bottom:8px}
+  .badge{background:var(--green);color:#fff;border-radius:14px;padding:3px 10px;font-size:11px;font-weight:bold}
+  .sum{display:none!important;display:flex;gap:10px;align-items:center;background:var(--orgbg);border:1px solid #f4d9a4;border-radius:12px;padding:4px 8px;margin-bottom:4px}
+  .score{border:3px solid var(--org);border-radius:10px;background:#fff;text-align:center;padding:2px 8px;min-width:68px}
+  .score b{display:block;font-size:20px;color:var(--org);line-height:1.1;font-variant-numeric:tabular-nums}
+  .score span{font-size:9px;color:var(--org)}
+  .sum p{margin:0;font-size:14px;font-weight:bold;line-height:1.4}
+  .sum small{font-size:11px;color:var(--mute);font-weight:normal}
+  .rt em strong{display:block;font-size:13px;color:#111;font-variant-numeric:tabular-nums;line-height:1.15}
+  .rt em strong span{font-size:9px;color:#777;font-weight:normal;margin-right:3px}
+  .rt em small{display:block;line-height:1.1;font-size:10px;color:#555;font-variant-numeric:tabular-nums}
+  .rt .pc,.bigmeta .pc{display:none}
+  .clockrow{text-align:center;padding:1px 0 0;line-height:1.2;border-top:1px solid var(--line);margin-top:2px}
+  .clock{font-size:18px;font-weight:bold;color:#222;font-variant-numeric:tabular-nums}
+  .clock small{font-size:11px;color:#777;font-weight:normal;margin-right:6px}
+  .pcall{color:#d9480f;font-size:14px;font-weight:bold;margin-right:8px}
+  .bar::before{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;background:repeating-linear-gradient(to right,transparent 0,transparent calc(100%/var(--n,1) - 1.5px),var(--ln,#fff) calc(100%/var(--n,1) - 1.5px),var(--ln,#fff) calc(100%/var(--n,1)))}
+  .bar i{position:relative;border-radius:5px 0 0 5px}
+  .bar i::before{content:"";position:absolute;right:0;top:0;bottom:0;width:22px;background:linear-gradient(to right,transparent,var(--track))}
+  .bar i::after{display:none!important;content:"";position:absolute;right:4px;top:100%;width:4px;height:6px;border-radius:50%;background:inherit;opacity:0;animation:drip 2.6s ease-in infinite}
+  .rows2 .row:nth-child(2) i::after{animation-delay:.7s}
+  .rows2 .row:nth-child(3) i::after{animation-delay:1.4s}
+  .rows2 .row:nth-child(4) i::after{animation-delay:2s}
+  .bigbar i::after{animation-delay:1s}
+  @keyframes drip{0%{transform:translateY(-5px) scaleY(.4);opacity:.9}60%{opacity:.6}100%{transform:translateY(16px) scaleY(1.3);opacity:0}}
+  .row.wide{display:flex;align-items:center;gap:8px;padding:0 2px}
+  .row.wide .rt2{display:contents}
+  .row.wide .rt2 b{order:1;width:50px;flex:none;font-size:13px;font-weight:bold;color:#111}
+  .row.wide .bar{order:2;flex:1;margin:0}
+  .row.wide .rt2 span{order:3;width:0;flex:none;text-align:right;font-size:10px;color:#666;white-space:nowrap}
+  .rt2 b{font-size:12px;color:#222}
+  .step{transition:width .35s ease}
+  .cd{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px;padding:3px 2px 1px;border-top:1px solid var(--line);margin-top:3px}
+  .cd .n{font-size:13px;font-weight:700;flex:1 1 auto}
+  .cd .n small{font-size:11px;font-weight:400;color:#555;margin-left:6px}
+  .cd .d{font-size:17px;font-weight:300;font-variant-numeric:tabular-nums}
+  .cd .u{font-size:12px;color:#555;white-space:nowrap}
+  .cd .memo{width:100%;font-size:10px;color:#555;line-height:1.25}
+  .rt{flex-wrap:wrap}
+  .rt>span:first-child{display:contents}
+  .rt em{order:3;flex:0 0 100%;min-width:0}
+  .rt .pc{margin-left:auto}
+  .rows2{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 8px}
+  .row{padding:0 2px;border-top:1px solid var(--line)}
+  .row:first-of-type{border-top:0}
+  .rt{display:flex;justify-content:space-between;align-items:baseline}
+  .rt b{font-size:14px}
+  .rt em{display:block;white-space:nowrap;margin:0;font-style:normal;font-size:11px;color:var(--mute);margin-left:6px}
+  .rt .pc{font-size:11px;font-weight:bold;color:var(--org)}
+  .bar{--track:#cdd3dc;position:relative;overflow:visible!important;height:7px;background:#d9dde3;border-radius:5px;overflow:hidden;margin-top:3px}
+  .bar i{display:block;height:100%;width:0;border-radius:5px}
+  .gr{background:var(--white);border:1px solid var(--line);border-radius:10px;padding:3px 8px 4px;margin-top:3px}
+  canvas{width:100%;display:block}
+  .bigbox{text-align:center;background:#fff;border-color:var(--line)}
+  .bigsec{font-size:28px;line-height:1.1;padding:0;font-weight:bold;color:#e03131;font-variant-numeric:tabular-nums;letter-spacing:.5px;transition:color .15s}
+  .bigsec small{font-size:14px;color:#9aa1ad;margin-left:6px;font-weight:normal}
+  .lifehead{display:flex;justify-content:space-between;align-items:center}
+  .lifeR{display:flex;align-items:center;gap:8px;white-space:nowrap}
+  .bigbox .pcall{color:#c92a2a;margin:0;font-size:12px}
+  .lifenow{text-align:left;color:#c92a2a;font-size:11px}
+  .lifenow b{color:#c92a2a;font-size:13px;margin-right:6px}
+  .bigsec .dp{font-size:17px;color:#f08c8c;font-weight:normal;margin-left:2px}
+  .bigsec small{font-size:13px!important;color:#c92a2a}
+  .bigsec small.pre{margin:0 6px 0 0}
+  .bigmeta{display:flex;justify-content:space-between;font-size:11px;color:#c92a2a;margin-top:2px}
+  .bigmeta .pc{color:#f2a33a;font-size:12px}
+  .bigbar{background:#cdd3dc;--track:#cdd3dc}
+  .bigsec.flash{color:#ff8787}
+  .biglbl{font-size:11px;color:#9aa1ad;text-align:center;margin-top:2px}
+  .legend{display:flex;gap:12px;font-size:11px;color:var(--mute);margin-top:8px}
+  .legend b{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+  .tick{display:none!important;font-size:12px;color:var(--red);font-weight:bold;margin-top:8px;text-align:center;font-variant-numeric:tabular-nums}
+  .foot{display:none!important;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--mute);margin-top:8px}
+  button{background:var(--white);border:1px solid var(--line);border-radius:12px;padding:5px 10px;font-size:11px;cursor:pointer;color:var(--ink)}
 </style>
 </head>
 <body>
-<div class="wrap" id="wrap"></div>
-<div class="foot" id="foot"></div>
+<div class="card">
+  <div class="sum">
+    <div class="score"><b id="wk"></b><span>のこり(週)</span></div>
+    <p id="msg"></p>
+  </div>
+  <div class="rows2">
+  <div class="row"><div class="rt"><b>今年</b><em id="e_y"></em></div><div class="bar" style="--n:12"><i id="b_y" style="background:#e8590c"></i></div></div>
+  <div class="row"><div class="rt"><b>今月</b><em id="e_m"></em></div><div class="bar" style="--n:6"><i id="b_m" style="background:#74b816"></i></div></div>
+  <div class="row"><div class="rt"><b>今週</b><em id="e_w"></em></div><div class="bar" style="--n:7"><i id="b_w" style="background:#0ca678"></i></div></div>
+  <div class="row" style="display:none"><div class="rt"><b>今日</b><em id="e_d"></em></div><div class="bar" style="--n:4"><i id="b_d" style="background:#4aa8e0"></i></div></div>
+  </div>
+  <div class="clockrow"><span class="clock" id="clock"></span></div>
+  <div class="row wide"><div class="rt2"><b>24時間</b><span id="t_h" style="display:none"></span></div><div class="bar" style="--n:24"><i id="b_h" class="step" style="background:#1c7ed6"></i></div></div>
+  <div class="row wide"><div class="rt2"><b>60分</b><span id="t_m60" style="display:none"></span></div><div class="bar" style="--n:60"><i id="b_m60" class="step" style="background:#0ca678"></i></div></div>
+  <div class="row wide"><div class="rt2"><b>1分</b><span id="t_s60" style="display:none"></span></div><div class="bar" style="--n:60"><i id="b_s60" class="step" style="background:#f08c00"></i></div></div>
+  <div class="row wide"><div class="rt2"><b>1秒</b><span id="t_ms" style="display:none"></span></div><div class="bar" style="--n:10"><i id="b_ms" style="background:#e64980;transition:width .06s linear"></i></div></div>
+  <div class="gr bigbox">
+    <div class="lifehead"><div class="lifenow" id="lifenow"></div><span class="lifeR"><b class="pcall" id="pcall"></b><span class="badge" id="age"></span></span></div>
+    <div class="bigsec" id="bigsec"></div>
+    <div class="bigmeta"><span id="e_sec"></span><span class="pc" id="p_sec"></span></div>
+    <div class="bar bigbar" style="--n:16;--ln:#fff"><i id="b_sec" style="background:#e03131"></i></div>
+  </div>
+  <div class="gr" style="display:none">
+    <div class="biglbl" style="margin:0 0 6px;text-align:left" id="todaylbl"></div>
+    <canvas id="cv2"></canvas>
+  </div>
+  <div class="gr" style="display:none">
+    <canvas id="cv"></canvas>
+    <div class="legend"><span><b style="background:#c9ced6"></b>もう使った</span><span><b style="background:#f0b400"></b>いま</span><span><b style="background:#2fb88a"></b>これから</span></div>
+    <div class="tick" id="tick"></div>
+  </div>
+  <div class="foot"><span>1マス=約1週間 / 1行=1年</span><button onclick="play()">もう一度</button></div>
+  <div id="events"></div>
+</div>
 <script>
-const q = new URLSearchParams(location.search);
-const born = q.get("b") ? new Date(q.get("b") + "T00:00:00") : null;   // 誕生日
-// 試験などの日付。アドレスに ?x=電験三種@2027-09-05@メモ のように付ける(メモは省略できる。複数は &x=… を並べる)
-const EVENTS = q.getAll("x").map(t => { const [name, date, ...m] = t.split("@"); return { name, date: new Date(date + "T00:00:00"), memo: m.join("@") }; }).filter(e => e.name && !isNaN(e.date));
-const LIFE = +q.get("age") || 81;                                      // 何歳までで数えるか(日本人男性の平均寿命は約81歳)
-
-function span(unit, now) {
-  const y = now.getFullYear(), m = now.getMonth(), d = now.getDate();
-  if (unit === "day")   return [new Date(y, m, d), new Date(y, m, d + 1)];
-  if (unit === "week")  { const dow = (now.getDay() + 6) % 7; return [new Date(y, m, d - dow), new Date(y, m, d - dow + 7)]; }   // 月曜はじまり
-  if (unit === "month") return [new Date(y, m, 1), new Date(y, m + 1, 1)];
-  if (unit === "year")  return [new Date(y, 0, 1), new Date(y + 1, 0, 1)];
-  const end = new Date(born); end.setFullYear(end.getFullYear() + LIFE);
-  return [born, end];
+const DAY=86400000,q=new URLSearchParams(location.search);
+// 誕生日はアドレスで渡す(?b=年-月-日)。ファイルには書かない
+const bp=(q.get("b")||"1990-01-01").split("-").map(Number),birth=new Date(bp[0],bp[1]-1,bp[2]),end=new Date(bp[0]+(+q.get("age")||81),bp[1]-1,bp[2]);
+const U={year:{n:"年",f:ms=>ms/DAY/365.2425},week:{n:"週",f:ms=>ms/DAY/7},day:{n:"日",f:ms=>ms/DAY},hour:{n:"時間",f:ms=>ms/3600000},sec:{n:"秒",f:ms=>ms/1000}};
+const cols=52,rows=80,cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+let prog=1,raf=0;
+const fmt=n=>Math.floor(n).toLocaleString(),pad=n=>String(n).padStart(2,"0"),$=id=>document.getElementById(id);
+function nums(){
+  const now=new Date();
+  // 今日・今週・今月・今年: あとどれだけ
+  const y0=now.getFullYear(),mo=now.getMonth(),dd=now.getDate(),dow=(now.getDay()+6)%7; // 月曜はじまり
+  const T={
+    d:[new Date(y0,mo,dd),new Date(y0,mo,dd+1)],
+    w:[new Date(y0,mo,dd-dow),new Date(y0,mo,dd-dow+7)],
+    m:[new Date(y0,mo,1),new Date(y0,mo+1,1)],
+    y:[new Date(y0,0,1),new Date(y0+1,0,1)]};
+  // 24時間・60分・1分: 区切りごとに減っていく
+  $("clock").innerHTML="<small>"+(now.getMonth()+1)+"月"+now.getDate()+"日("+"日月火水木金土"[now.getDay()]+")</small>"+pad(now.getHours())+":"+pad(now.getMinutes())+":"+pad(now.getSeconds());
+  const hh=now.getHours(),mm=now.getMinutes(),ss=now.getSeconds();
+  const sh=hh*3600+mm*60+ss, sm=mm*60+ss;
+  const blk={h:Math.ceil((86400-sh)/3600),m60:Math.ceil((3600-sm)/60),s60:Math.ceil(60-ss)};
+  const N={h:24,m60:60,s60:60};
+  for(const k in blk)$("b_"+k).style.width=(blk[k]/N[k]*100)+"%";
+  $("t_h").textContent="あと "+Math.floor((86400-sh)/3600)+"時間"+pad(Math.floor((86400-sh)%3600/60))+"分";
+  $("t_m60").textContent="あと "+Math.floor((3600-sm)/60)+"分"+pad((3600-sm)%60)+"秒";
+  $("t_s60").textContent="あと "+(60-ss)+"秒";
+  const msr=1000-now.getMilliseconds();
+  $("b_ms").style.width=(Math.ceil(msr/100)*10)+"%";
+  $("t_ms").textContent="あと "+(msr/1000).toFixed(2)+"秒";
+  const W="日月火水木金土";
+  const info={
+    d:()=>{const m=Math.floor((T.d[1]-now)/60000);return["あと "+Math.floor(m/60)+"時間"+pad(m%60)+"分",now.getHours()+"時"];},
+    w:()=>["あと "+Math.floor((T.w[1]-now)/DAY)+"日",W[now.getDay()]+"曜日"],
+    m:()=>["あと "+Math.floor((T.m[1]-now)/DAY)+"日",dd+"日"],
+    y:()=>["あと "+Math.floor((T.y[1]-now)/DAY)+"日",y0+"年"]};
+  for(const k in T){
+    const [a,b]=T[k],left=(b-now)/(b-a),t=info[k]();
+    $("e_"+k).innerHTML="<strong>"+t[0]+"</strong><small>"+t[1]+"</small>";
+    $("b_"+k).style.width=(100-(1-left)*100*prog)+"%";
+  }
+  for(const k in U){
+    const u=U[k],total=u.f(end-birth),lived=u.f(now-birth),left=total-lived,pc=lived/total*100;
+    if(k!=="sec")continue;
+    if(k==="sec"){const dl=(now-birth)/DAY;$("lifenow").innerHTML="<b>人生</b>"+(Math.floor(dl/365.2425*10)/10).toFixed(1)+"年("+fmt(dl)+"日)";$("e_sec").textContent="あと "+((end-now)/DAY/365.2425).toFixed(1)+"年("+fmt((end-now)/DAY)+"日)";$("p_sec").textContent=(pc*prog).toFixed(1)+"%";$("b_sec").style.width=(pc*prog)+"%";continue;}
+    const F=k==="year"?(v=>v.toFixed(1)):fmt;$("e_"+k).innerHTML="<strong><span>のこり</span>"+F(left)+"</strong><small>全部 "+F(total)+"</small>";
+    $("p_"+k).textContent=(pc*prog).toFixed(1)+"%";
+    $("b_"+k).style.width=(100-pc*prog)+"%";
+  }
+  const wl=U.week.f(end-now);
+  $("wk").textContent=fmt(wl);
+  $("pcall").textContent=(U.week.f(now-birth)/U.week.f(end-birth)*100*prog).toFixed(1)+"% 使った";
+  $("age").textContent=Math.floor((now-birth)/DAY/365.2425)+"歳";
+  $("msg").innerHTML="人生の約"+(U.week.f(now-birth)/U.week.f(end-birth)*100).toFixed(0)+"%を使いました。<br><small>残りはいまも減っています</small>";
+  const ms=end-now,s=Math.floor(ms/1000);
+  const bs=$("bigsec"),txt=fmt(s)+"."+pad(Math.floor(ms%1000/10));
+  if(bs.dataset.s!=String(s)){bs.dataset.s=s;bs.classList.add("flash");setTimeout(()=>bs.classList.remove("flash"),120);}
+  const pt=txt.split(".");bs.innerHTML="<small class=\"pre\">あと</small><span class=\"ip\">"+pt[0]+"</span><span class=\"dp\">."+pt[1]+"</span><small>秒</small>";
+  $("tick").textContent="あと "+fmt(s/86400)+"日 "+pad(Math.floor(s%86400/3600))+":"+pad(Math.floor(s%3600/60))+":"+pad(s%60);
 }
-const fmtLeft = (ms, unit) => {
-  const min = Math.max(0, Math.floor(ms / 60000)), h = Math.floor(min / 60), day = ms / 86400000;
-  if (unit === "day") return `あと ${h}時間${min % 60}分`;
-  if (unit === "life") return `あと ${(day / 365.25).toFixed(1)}年(${Math.round(day).toLocaleString()}日)`;
-  return `あと ${day >= 1 ? Math.floor(day) + "日" : ""}${day >= 1 ? "" : h + "時間"}`;
-};
-// 棒の区切り(今日=6時間ずつ / 今週=1日ずつ / 今月=5日ずつ / 今年=1か月ずつ / 人生=5年ずつ)。0〜1の位置で返す
-function ticks(unit, a, b) {
-  const t = [], r = d => (d - a) / (b - a);
-  if (unit === "day") for (let h = 6; h < 24; h += 6) t.push(h / 24);
-  if (unit === "week") for (let d = 1; d < 7; d++) t.push(d / 7);
-  if (unit === "month") { const n = Math.round((b - a) / 86400000); for (let d = 5; d < n; d += 5) t.push(d / n); }
-  if (unit === "year") for (let m = 1; m < 12; m++) t.push(r(new Date(a.getFullYear(), m, 1)));
-  if (unit === "life") for (let y = 5; y < LIFE; y += 5) { const d = new Date(a); d.setFullYear(d.getFullYear() + y); t.push(r(d)); }
-  return t;
+function draw(){
+  const dpr=window.devicePixelRatio||1,W=cv.clientWidth,gap=1.5,cell=(W-gap*(cols-1))/cols,H=rows*(cell+gap)-gap;
+  cv.width=W*dpr;cv.height=H*dpr;cv.style.height=(H*.26)+"px";ctx.setTransform(dpr,0,0,dpr,0,0);
+  const pos=(new Date()-birth)/(end-birth)*rows*cols,used=pos*prog,pulse=.5+.5*Math.sin(performance.now()/180);
+  const now=performance.now()/1000,i0=Math.floor(pos),step=cell+gap;
+  for(let i=0;i<rows*cols;i++){
+    const x=(i%cols)*step,y=Math.floor(i/cols)*step;
+    if(i<used){ctx.fillStyle="#c9ced6";ctx.fillRect(x,y,cell,cell);continue;}
+    ctx.fillStyle="#2fb88a";ctx.fillRect(x,y,cell,cell);
+  }
+  if(prog>=1){
+    const i0=Math.floor(pos),x=(i0%cols)*step,y=Math.floor(i0/cols)*step;
+    ctx.fillStyle="#f0b400";ctx.fillRect(x,y,cell,cell);
+  }
 }
-const ROWS = [["day", "今日", "#8fd4ff"], ["week", "今週", "#6fd3b0"], ["month", "今月", "#b5dc52"], ["year", "今年", "#ffd23f"], ["life", "人生", "#ff9f0a"]];
-
-function draw() {
-  const now = new Date();
-  // 名前の横に出す「いま」: 今日=何時 / 今週=何曜日 / 今月=何日 / 今年=何年 / 人生=何年(満年数)
-  const yrs = born ? now.getFullYear() - born.getFullYear() - (now < new Date(now.getFullYear(), born.getMonth(), born.getDate()) ? 1 : 0) : null;
-  const SUB = { day: `${now.getHours()}時`, week: `${"日月火水木金土"[now.getDay()]}曜日`, month: `${now.getDate()}日`, year: `${now.getFullYear()}年`, life: born ? `${((now - born) / 86400000 / 365.25).toFixed(1)}年(${Math.floor((now - born) / 86400000).toLocaleString()}日)` : "" };
-  document.getElementById("wrap").innerHTML = `<div class="cap">人生グラフ</div>` + ROWS.map(([u, name, c]) => {
-    if (u === "life" && !born) return `<div class="row"><div class="n">${name}</div><div class="left" style="grid-column:2/-1;white-space:normal">誕生日が未設定です(アドレスの最後に ?b=1990-01-01 のように付けます)</div></div>`;
-    const [a, b] = span(u, now), p = Math.min(100, Math.max(0, (now - a) / (b - a) * 100));
-    return `<div class="row"><div class="n">${name}<small>${SUB[u]}</small></div><div class="bar"><i style="width:${p}%;--c:${c}"></i>${ticks(u, a, b).map(f => `<b style="left:${f * 100}%"></b>`).join("")}</div><div class="pct">${p.toFixed(1)}%</div><div class="left">${fmtLeft(b - now, u)}</div></div>`;
+// 今日の1440分(1マス=1分)。いまの1分は、秒ごとに灰色が伸びていく
+const c2=$("cv2"),x2=c2.getContext("2d");
+function drawToday(){
+  const dpr=window.devicePixelRatio||1,W=c2.clientWidth,C=96,R=15,gap=1.5,cell=(W-gap*(C-1))/C,H=R*(cell+gap)-gap;
+  c2.width=W*dpr;c2.height=H*dpr;c2.style.height=(H*.4)+"px";x2.setTransform(dpr,0,0,dpr,0,0);
+  const n=new Date(),sod=new Date(n.getFullYear(),n.getMonth(),n.getDate()),sec=(n-sod)/1000,m=sec/60,mi=Math.floor(m);
+  for(let i=0;i<1440;i++){
+    const x=(i%C)*(cell+gap),y=Math.floor(i/C)*(cell+gap);
+    x2.fillStyle=i<mi?"#c9ced6":"#2fb88a";x2.fillRect(x,y,cell,cell);
+    if(i===mi){x2.fillStyle="#c9ced6";x2.fillRect(x,y,cell*(m-mi),cell);x2.strokeStyle="#f0b400";x2.lineWidth=1.5;x2.strokeRect(x,y,cell,cell);}
+  }
+  $("todaylbl").textContent="今日の1440分(1マス=1分)。今日はあと "+fmt((86400-sec)/3600)+"時間"+pad(Math.floor((86400-sec)%3600/60))+"分";
+}
+// 試験などの日付。アドレスに &x=電験三種@2027-09-05@メモ のように付ける(複数は &x=… を並べる)
+const EVENTS=q.getAll("x").map(t=>{const [name,date,...m]=t.split("@");return{name,date:new Date(date+"T00:00:00"),memo:m.join("@")};}).filter(e=>e.name&&!isNaN(e.date));
+function renderEvents(list){
+  list=list||EVENTS;const now=new Date(),t0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const sorted=[...list].sort((a,b)=>((a.date<t0)-(b.date<t0))||(a.date-b.date)); // 終わったものは下へ
+  $("events").innerHTML=sorted.map(e=>{
+    const days=Math.round((e.date-t0)/86400000),w=(e.date.getMonth()+1)+"月"+e.date.getDate()+"日("+"日月火水木金土"[e.date.getDay()]+")",wk=days>=7?"・あと"+Math.floor(days/7)+"週間":"";
+    const memo=e.memo?'<div class="memo">'+e.memo+'</div>':"";
+    return days<0?'<div class="cd" style="opacity:.45"><div class="n">'+e.name+'<small>'+w+'</small></div><div class="u">終わりました</div>'+memo+'</div>'
+      :'<div class="cd"><div class="n">'+e.name+'<small>'+w+wk+'</small></div><div class="d">'+(days===0?"今日":days)+'</div><div class="u">'+(days===0?"":"日後")+'</div>'+memo+'</div>';
   }).join("");
-  const t0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const sorted = [...EVENTS].sort((a, b) => ((a.date < t0) - (b.date < t0)) || (a.date - b.date));   // 終わったものは一番下へ
-  document.getElementById("wrap").innerHTML += sorted.map(e => {
-    const days = Math.round((e.date - t0) / 86400000);
-    const w = `${e.date.getMonth() + 1}月${e.date.getDate()}日(${"日月火水木金土"[e.date.getDay()]})`;
-    const wk = days >= 7 ? `・あと${Math.floor(days / 7)}週間` : "";   // 試験の名前の横に「何月何日・あと何週間」
-    return days < 0 ? `<div class="cd" style="opacity:.45"><div class="n">${e.name}<small>${w}</small></div><div class="u">終わりました</div>${e.memo ? `<div class="memo">${e.memo}</div>` : ""}</div>`
-      : `<div class="cd"><div class="n">${e.name}<small>${w}${wk}</small></div><div class="d">${days === 0 ? "今日" : days}</div><div class="u">${days === 0 ? "" : "日後"}</div>${e.memo ? `<div class="memo">${e.memo}</div>` : ""}</div>`;
-  }).join("");
-  document.getElementById("foot").textContent = born ? `人生は ${LIFE}歳までで計算` : "";
 }
-draw();
-setInterval(draw, 30 * 1000);
+renderEvents();setInterval(()=>renderEvents(),60000);
+function loop(){drawToday();prog=1;draw();nums();setTimeout(()=>{raf=requestAnimationFrame(loop)},40);}
+function play(){
+  cancelAnimationFrame(raf);prog=0;const t0=performance.now();
+  (function step(){const p=Math.min(1,(performance.now()-t0)/3000);prog=1-Math.pow(1-p,3);draw();drawToday();nums();if(p<1)raf=requestAnimationFrame(step);else loop();})();
+}
+window.addEventListener("resize",draw);play();
 </script>
 </body>
 </html>
