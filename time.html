@@ -21,7 +21,7 @@
   .rt em strong span{font-size:9px;color:#777;font-weight:normal;margin-right:3px}
   .rt em small{display:block;line-height:1.1;font-size:10px;color:#555;font-variant-numeric:tabular-nums}
   .rt .pc,.bigmeta .pc{display:none}
-  .clockrow{text-align:center;padding:1px 0 0;line-height:1.2;border-top:1px solid var(--line);margin-top:2px}
+  .clockrow{text-align:center;padding:0;line-height:1.2}
   .clock{font-size:18px;font-weight:bold;color:#222;font-variant-numeric:tabular-nums}
   .clock small{font-size:11px;color:#777;font-weight:normal;margin-right:6px}
   .pcall{color:#d9480f;font-size:14px;font-weight:bold;margin-right:8px}
@@ -36,7 +36,7 @@
   @keyframes drip{0%{transform:translateY(-5px) scaleY(.4);opacity:.9}60%{opacity:.6}100%{transform:translateY(16px) scaleY(1.3);opacity:0}}
   .row.wide{display:flex;align-items:center;gap:8px;padding:0 2px}
   .row.wide .rt2{display:contents}
-  .row.wide .rt2 b{order:1;width:50px;flex:none;font-size:13px;font-weight:bold;color:#111}
+  .row.wide .rt2 b{order:1;width:50px;white-space:nowrap;flex:none;font-size:13px;font-weight:bold;color:#111}
   .row.wide .bar{order:2;flex:1;margin:0}
   .row.wide .rt2 span{order:3;width:0;flex:none;text-align:right;font-size:10px;color:#666;white-space:nowrap}
   .rt2 b{font-size:12px;color:#222}
@@ -47,6 +47,19 @@
   .cd .d{font-size:17px;font-weight:300;font-variant-numeric:tabular-nums}
   .cd .u{font-size:12px;color:#555;white-space:nowrap}
   .cd .memo{width:100%;font-size:10px;color:#555;line-height:1.25}
+  .row{border-top:0!important}
+  .sect{font-size:10px;font-weight:bold;color:#666;letter-spacing:.04em;margin:4px 2px 1px;padding-top:3px;border-top:1px solid var(--line)}
+  .sect{font-size:0!important;line-height:0;padding:0!important;margin:5px 2px 4px!important}
+  .sect.first{display:none!important}
+  .rows2 .rt b{display:none}
+  .sect.first{border-top:0;margin-top:1px;padding-top:0}
+  .stack{position:relative;margin-bottom:8px}
+  .stack .row.wide{margin-bottom:4px}
+  .stack .row.wide:last-of-type{margin-bottom:0}
+  .funnel{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+  .row.wide .rt2 b small{display:none;font-size:11px;font-weight:bold;color:#1c7ed6;margin-left:6px;font-variant-numeric:tabular-nums}
+  .rows2 .rt em{display:flex!important;justify-content:space-between;align-items:baseline;gap:2px;white-space:nowrap}
+  .rows2 .rt em small{font-size:9px}
   .rt{flex-wrap:wrap}
   .rt>span:first-child{display:contents}
   .rt em{order:3;flex:0 0 100%;min-width:0}
@@ -62,7 +75,8 @@
   .bar i{display:block;height:100%;width:0;border-radius:5px}
   .gr{background:var(--white);border:1px solid var(--line);border-radius:10px;padding:3px 8px 4px;margin-top:3px}
   canvas{width:100%;display:block}
-  .bigbox{text-align:center;background:#fff;border-color:var(--line)}
+  #lifesect+.bigbox{margin-top:2px}
+  .bigbox{text-align:center;background:transparent!important;border:0!important;padding:0 2px!important;margin-top:0!important}
   .bigsec{font-size:28px;line-height:1.1;padding:0;font-weight:bold;color:#e03131;font-variant-numeric:tabular-nums;letter-spacing:.5px;transition:color .15s}
   .bigsec small{font-size:14px;color:#9aa1ad;margin-left:6px;font-weight:normal}
   .lifehead{display:flex;justify-content:space-between;align-items:center}
@@ -73,7 +87,8 @@
   .bigsec .dp{font-size:17px;color:#f08c8c;font-weight:normal;margin-left:2px}
   .bigsec small{font-size:13px!important;color:#c92a2a}
   .bigsec small.pre{margin:0 6px 0 0}
-  .bigmeta{display:flex;justify-content:space-between;font-size:11px;color:#c92a2a;margin-top:2px}
+  .lifenow .lf2{margin-left:12px}
+  .bigmeta{display:none!important;justify-content:space-between;font-size:11px;color:#c92a2a;margin-top:2px}
   .bigmeta .pc{color:#f2a33a;font-size:12px}
   .bigbar{background:#cdd3dc;--track:#cdd3dc}
   .bigsec.flash{color:#ff8787}
@@ -91,17 +106,22 @@
     <div class="score"><b id="wk"></b><span>のこり(週)</span></div>
     <p id="msg"></p>
   </div>
+  <div class="sect first">今日(1日の中の時間)</div>
+  <div class="clockrow"><span class="clock" id="clock"></span></div>
+  <div class="stack" id="stack"><svg class="funnel" id="funnel"></svg>
+  <div class="row wide"><div class="rt2"><b>時間<small id="l_h"></small></b><span id="t_h" style="display:none"></span></div><div class="bar" style="--n:24"><i id="b_h" class="step" style="background:#1c7ed6"></i></div></div>
+  <div class="row wide"><div class="rt2"><b>分<small id="l_m60"></small></b><span id="t_m60" style="display:none"></span></div><div class="bar" style="--n:60"><i id="b_m60" class="step" style="background:#0ca678"></i></div></div>
+  <div class="row wide"><div class="rt2"><b>秒<small id="l_s60"></small></b><span id="t_s60" style="display:none"></span></div><div class="bar" style="--n:60"><i id="b_s60" class="step" style="background:#f08c00"></i></div></div>
+  <div class="row wide"><div class="rt2"><b><small id="l_ms"></small></b><span id="t_ms" style="display:none"></span></div><div class="bar" style="--n:10"><i id="b_ms" style="background:#e64980;transition:width .06s linear"></i></div></div>
+  </div>
+  <div class="sect">カレンダー(今年・今月・今週)</div>
   <div class="rows2">
   <div class="row"><div class="rt"><b>今年</b><em id="e_y"></em></div><div class="bar" style="--n:12"><i id="b_y" style="background:#e8590c"></i></div></div>
   <div class="row"><div class="rt"><b>今月</b><em id="e_m"></em></div><div class="bar" style="--n:6"><i id="b_m" style="background:#74b816"></i></div></div>
   <div class="row"><div class="rt"><b>今週</b><em id="e_w"></em></div><div class="bar" style="--n:7"><i id="b_w" style="background:#0ca678"></i></div></div>
   <div class="row" style="display:none"><div class="rt"><b>今日</b><em id="e_d"></em></div><div class="bar" style="--n:4"><i id="b_d" style="background:#4aa8e0"></i></div></div>
   </div>
-  <div class="clockrow"><span class="clock" id="clock"></span></div>
-  <div class="row wide"><div class="rt2"><b>24時間</b><span id="t_h" style="display:none"></span></div><div class="bar" style="--n:24"><i id="b_h" class="step" style="background:#1c7ed6"></i></div></div>
-  <div class="row wide"><div class="rt2"><b>60分</b><span id="t_m60" style="display:none"></span></div><div class="bar" style="--n:60"><i id="b_m60" class="step" style="background:#0ca678"></i></div></div>
-  <div class="row wide"><div class="rt2"><b>1分</b><span id="t_s60" style="display:none"></span></div><div class="bar" style="--n:60"><i id="b_s60" class="step" style="background:#f08c00"></i></div></div>
-  <div class="row wide"><div class="rt2"><b>1秒</b><span id="t_ms" style="display:none"></span></div><div class="bar" style="--n:10"><i id="b_ms" style="background:#e64980;transition:width .06s linear"></i></div></div>
+  <div class="sect" id="lifesect">人生</div>
   <div class="gr bigbox">
     <div class="lifehead"><div class="lifenow" id="lifenow"></div><span class="lifeR"><b class="pcall" id="pcall"></b><span class="badge" id="age"></span></span></div>
     <div class="bigsec" id="bigsec"></div>
@@ -123,7 +143,7 @@
 <script>
 const DAY=86400000,q=new URLSearchParams(location.search);
 // 誕生日はアドレスで渡す(?b=年-月-日)。ファイルには書かない
-const bp=(q.get("b")||"1990-01-01").split("-").map(Number),birth=new Date(bp[0],bp[1]-1,bp[2]),end=new Date(bp[0]+(+q.get("age")||81),bp[1]-1,bp[2]);
+const bp=(q.get("b")||"1990-01-01").split("-").map(Number),birth=new Date(bp[0],bp[1]-1,bp[2]),end=new Date(bp[0]+(+q.get("age")||80),bp[1]-1,bp[2]);
 const U={year:{n:"年",f:ms=>ms/DAY/365.2425},week:{n:"週",f:ms=>ms/DAY/7},day:{n:"日",f:ms=>ms/DAY},hour:{n:"時間",f:ms=>ms/3600000},sec:{n:"秒",f:ms=>ms/1000}};
 const cols=52,rows=80,cv=document.getElementById("cv"),ctx=cv.getContext("2d");
 let prog=1,raf=0;
@@ -138,11 +158,16 @@ function nums(){
     m:[new Date(y0,mo,1),new Date(y0,mo+1,1)],
     y:[new Date(y0,0,1),new Date(y0+1,0,1)]};
   // 24時間・60分・1分: 区切りごとに減っていく
-  $("clock").innerHTML="<small>"+(now.getMonth()+1)+"月"+now.getDate()+"日("+"日月火水木金土"[now.getDay()]+")</small>"+pad(now.getHours())+":"+pad(now.getMinutes())+":"+pad(now.getSeconds());
+  $("clock").innerHTML="<small>"+now.getFullYear()+"年"+(now.getMonth()+1)+"月"+now.getDate()+"日("+"日月火水木金土"[now.getDay()]+")</small>"+pad(now.getHours())+":"+pad(now.getMinutes())+":"+pad(now.getSeconds());
   const hh=now.getHours(),mm=now.getMinutes(),ss=now.getSeconds();
   const sh=hh*3600+mm*60+ss, sm=mm*60+ss;
   const blk={h:Math.ceil((86400-sh)/3600),m60:Math.ceil((3600-sm)/60),s60:Math.ceil(60-ss)};
   const N={h:24,m60:60,s60:60};
+  drawFunnel(blk);
+  $("l_h").textContent=(now.getMonth()+1)+"月"+now.getDate()+"日";
+  $("l_m60").textContent=hh+"時台";
+  $("l_s60").textContent=hh+":"+pad(mm);
+  $("l_ms").textContent=hh+":"+pad(mm)+":"+pad(ss);
   for(const k in blk)$("b_"+k).style.width=(blk[k]/N[k]*100)+"%";
   $("t_h").textContent="あと "+Math.floor((86400-sh)/3600)+"時間"+pad(Math.floor((86400-sh)%3600/60))+"分";
   $("t_m60").textContent="あと "+Math.floor((3600-sm)/60)+"分"+pad((3600-sm)%60)+"秒";
@@ -155,22 +180,23 @@ function nums(){
     d:()=>{const m=Math.floor((T.d[1]-now)/60000);return["あと "+Math.floor(m/60)+"時間"+pad(m%60)+"分",now.getHours()+"時"];},
     w:()=>["あと "+Math.floor((T.w[1]-now)/DAY)+"日",W[now.getDay()]+"曜日"],
     m:()=>["あと "+Math.floor((T.m[1]-now)/DAY)+"日",dd+"日"],
-    y:()=>["あと "+Math.floor((T.y[1]-now)/DAY)+"日",y0+"年"]};
+    y:()=>["あと "+Math.floor((T.y[1]-now)/DAY)+"日",y0+"年(令和"+(y0-2018)+"年)"]};
   for(const k in T){
     const [a,b]=T[k],left=(b-now)/(b-a),t=info[k]();
-    $("e_"+k).innerHTML="<strong>"+t[0]+"</strong><small>"+t[1]+"</small>";
+    $("e_"+k).innerHTML="<small>"+t[1]+"</small><strong>"+t[0]+"</strong>";
     $("b_"+k).style.width=(100-(1-left)*100*prog)+"%";
   }
   for(const k in U){
     const u=U[k],total=u.f(end-birth),lived=u.f(now-birth),left=total-lived,pc=lived/total*100;
     if(k!=="sec")continue;
-    if(k==="sec"){const dl=(now-birth)/DAY;$("lifenow").innerHTML="<b>人生</b>"+(Math.floor(dl/365.2425*10)/10).toFixed(1)+"年("+fmt(dl)+"日)";$("e_sec").textContent="あと "+((end-now)/DAY/365.2425).toFixed(1)+"年("+fmt((end-now)/DAY)+"日)";$("p_sec").textContent=(pc*prog).toFixed(1)+"%";$("b_sec").style.width=(pc*prog)+"%";continue;}
+    if(k==="sec"){const dl=(now-birth)/DAY;$("lifenow").innerHTML="<b>人生"+(end.getFullYear()-birth.getFullYear())+"歳まで</b>"+(Math.floor(dl/365.2425*10)/10).toFixed(1)+"年("+fmt(dl)+"日)"+"<span class=\"lf2\">あと "+((end-now)/DAY/365.2425).toFixed(1)+"年("+fmt((end-now)/DAY)+"日)</span>";$("e_sec").textContent="あと "+((end-now)/DAY/365.2425).toFixed(1)+"年("+fmt((end-now)/DAY)+"日)";$("p_sec").textContent=(pc*prog).toFixed(1)+"%";$("b_sec").style.width=(pc*prog)+"%";continue;}
     const F=k==="year"?(v=>v.toFixed(1)):fmt;$("e_"+k).innerHTML="<strong><span>のこり</span>"+F(left)+"</strong><small>全部 "+F(total)+"</small>";
     $("p_"+k).textContent=(pc*prog).toFixed(1)+"%";
     $("b_"+k).style.width=(100-pc*prog)+"%";
   }
   const wl=U.week.f(end-now);
   $("wk").textContent=fmt(wl);
+  $("lifesect").textContent="人生("+(end.getFullYear()-birth.getFullYear())+"歳まで)";
   $("pcall").textContent=(U.week.f(now-birth)/U.week.f(end-birth)*100*prog).toFixed(1)+"% 使った";
   $("age").textContent=Math.floor((now-birth)/DAY/365.2425)+"歳";
   $("msg").innerHTML="人生の約"+(U.week.f(now-birth)/U.week.f(end-birth)*100).toFixed(0)+"%を使いました。<br><small>残りはいまも減っています</small>";
@@ -207,6 +233,18 @@ function drawToday(){
     if(i===mi){x2.fillStyle="#c9ced6";x2.fillRect(x,y,cell*(m-mi),cell);x2.strokeStyle="#f0b400";x2.lineWidth=1.5;x2.strokeRect(x,y,cell,cell);}
   }
   $("todaylbl").textContent="今日の1440分(1マス=1分)。今日はあと "+fmt((86400-sec)/3600)+"時間"+pad(Math.floor((86400-sec)%3600/60))+"分";
+}
+// 24時間→60分→1分→1秒: 上の棒の「いまのマス」が、下の棒ぜんぶに広がる
+function drawFunnel(blk){
+  const st=$("stack"),sr=st.getBoundingClientRect(),ks=["h","m60","s60","ms"],N=[24,60,60,10],C=["#1c7ed6","#0ca678","#f08c00"];
+  const R=ks.map(k=>$("b_"+k).parentElement.getBoundingClientRect());let h="<defs>";
+  C.forEach((c,k)=>{h+='<linearGradient id="fg'+k+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+c+'" stop-opacity=".6"/><stop offset="1" stop-color="'+c+'" stop-opacity=".1"/></linearGradient>';});
+  h+="</defs>";
+  for(let k=0;k<3;k++){
+    const b=R[k],nb=R[k+1],i=Math.max(0,blk[ks[k]]-1),w=b.width/N[k],x0=b.left-sr.left+i*w,x1=x0+w,y1=b.bottom-sr.top,y2=nb.top-sr.top,m=(y1+y2)/2,L=nb.left-sr.left,Rr=nb.right-sr.left;
+    h+='<rect x="'+(x0-.5)+'" y="'+(b.top-sr.top-2)+'" width="'+(w+1)+'" height="'+(b.height+4)+'" rx="2" fill="none" stroke="#111" stroke-width="1.6"/>';
+  }
+  $("funnel").innerHTML=h;
 }
 // 試験などの日付。アドレスに &x=電験三種@2027-09-05@メモ のように付ける(複数は &x=… を並べる)
 const EVENTS=q.getAll("x").map(t=>{const [name,date,...m]=t.split("@");return{name,date:new Date(date+"T00:00:00"),memo:m.join("@")};}).filter(e=>e.name&&!isNaN(e.date));
