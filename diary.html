@@ -14,6 +14,7 @@
   button,select{font:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);padding:4px 12px;cursor:pointer}
   button.save{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:700}
   button.reset{color:var(--red);border-color:#f0b8b8}
+  .allday{font-size:12px;color:var(--mute);margin:-2px 2px 6px;display:none}
   .msg{font-size:12px;color:var(--mute);min-width:90px}
   .cols{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   @media(max-width:440px){.cols{grid-template-columns:1fr}}
@@ -31,14 +32,17 @@
   <div class="bar">
     <span class="date" id="date"></span>
     <select id="past" title="保存した日を開く"><option value="">過去の日</option></select>
+    <button id="imp" style="display:none">予定を取り込む</button>
     <button class="save" id="save">保存</button>
     <button class="reset" id="reset">リセット</button>
     <span class="msg" id="msg"></span>
   </div>
+  <div class="allday" id="allday"></div>
   <div class="cols" id="cols"></div>
 </div>
 <script>
 const $=id=>document.getElementById(id);
+const Q=new URLSearchParams(location.search),GSRC=Q.get("g"),GKEY=Q.get("k");   // Googleカレンダーの取り込み用(アドレスで渡す)
 const S=[];for(let m=7*60;m<24*60;m+=30)S.push(Math.floor(m/60)+":"+String(m%60).padStart(2,"0"));
 const ymd=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 const W="日月火水木金土";
@@ -62,7 +66,7 @@ function refreshPast(){
 }
 function show(k){cur=k;$("date").textContent=label(k);const s=ls.get("diary:day:"+k);const dr=JSON.parse(ls.get("diary:draft:"+k)||"null");
   // 下書きがその日のものなら、保存前の入力を優先して戻す
-  fill(dr?dr.data:(s?JSON.parse(s):{}));refreshPast();mark()}
+  fill(dr?dr.data:(s?JSON.parse(s):{}));refreshPast();mark();if(GSRC)importCal(false,!ls.get("diary:cal:"+k))}
 function draft(){ls.set("diary:draft:"+cur,JSON.stringify({date:cur,data:read()}))}
 function mark(){ // いまの時間帯の行に色をつける(今日のときだけ)
   document.querySelectorAll("td.t").forEach(td=>td.classList.remove("now"));
@@ -71,6 +75,32 @@ function mark(){ // いまの時間帯の行に色をつける(今日のとき�
   const td=document.querySelector('td.t[data-t="'+t+'"]');if(td)td.classList.add("now");
 }
 inputs.forEach(i=>i.addEventListener("input",draft));
+// Googleカレンダーの予定を、その日の「予定」の空いているマスに入れる
+const hmOf=d=>{const p=new Intl.DateTimeFormat("sv-SE",{timeZone:"Asia/Tokyo",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).format(d);return +p.slice(0,2)*60+ +p.slice(3,5)};
+async function importCal(manual,fill){
+  if(!GSRC)return;const day=cur;
+  const t0=new Date(day+"T00:00:00+09:00"),t1=new Date(t0.getTime()+86400000);
+  try{
+    const r=await fetch(GSRC+(GSRC.includes("?")?"&":"?")+"k="+encodeURIComponent(GKEY||"")+"&from="+t0.toISOString()+"&to="+t1.toISOString());
+    const j=await r.json();if(day!==cur)return;
+    const ev=(j.events||[]).map(e=>({t:e.t,a:e.a,s:new Date(e.s),e:new Date(e.e)})).filter(e=>e.e>t0&&e.s<t1);
+    const all=ev.filter(e=>e.a).map(e=>e.t);
+    $("allday").style.display=all.length?"block":"none";$("allday").textContent=all.length?"終日: "+all.join("、"):"";
+    let n=0;
+    if(fill)ev.filter(e=>!e.a).sort((x,y)=>x.s-y.s).forEach(e=>{
+      const a=Math.max(e.s,t0),b=Math.min(e.e,t1),sm=hmOf(new Date(a)),em=(b>=t1?1440:hmOf(new Date(b)));
+      for(let m=7*60;m<24*60;m+=30){
+        if(m+30<=sm||m>=em)continue;
+        const t=Math.floor(m/60)+":"+String(m%60).padStart(2,"0"),inp=document.querySelector('input[data-k="p'+t+'"]');
+        if(inp&&!inp.value){inp.value=(m<=sm&&sm<m+30)?e.t:"↓";n++}
+      }
+    });
+    if(fill){draft();ls.set("diary:cal:"+day,"1")}
+    if(manual)say(n?"取り込みました":"取り込む予定がありません");
+  }catch(err){if(manual)say("取り込めませんでした")}
+}
+if(GSRC)$("imp").style.display="";
+$("imp").onclick=()=>importCal(true,true);
 $("save").onclick=()=>{
   const ok=ls.set("diary:day:"+cur,JSON.stringify(read()));draft();refreshPast();
   const n=new Date();say(ok?"保存しました "+n.getHours()+":"+String(n.getMinutes()).padStart(2,"0"):"保存できませんでした");
