@@ -42,6 +42,12 @@
   td.a .grip{background:linear-gradient(to bottom,transparent,rgba(47,184,138,.7))}
   td:hover .grip,.grip.on{display:block}
   td.now{background:#fff6d6}
+  #bk{display:none;flex-direction:column;gap:6px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px}
+  #bk .bt{font-size:12px;color:var(--mute);line-height:1.5}
+  #bk .bt b{color:var(--ink)}
+  #bk textarea{flex:1;min-height:0;width:100%;resize:none;font:11px/1.4 ui-monospace,Consolas,monospace;border:1px solid var(--line);border-radius:6px;padding:6px;color:var(--ink);outline:none}
+  #bk .bb{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center}
+  #bk .bb span{font-size:12px;color:var(--mute)}
   #mv{display:none;background:#fff;border:1px solid var(--line);border-radius:8px;overflow:auto}
   #mv .mh{position:sticky;top:0;z-index:2;display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;padding:4px 8px;background:#eef1f6;font-size:13px;font-weight:600}
   #mv .mh span{margin-right:auto}
@@ -60,11 +66,17 @@
     <div class="nav"><button id="prev" title="前の日">‹ 前日</button><select id="past" title="保存した日を開く"><option value="">過去の日</option></select><button id="next" title="次の日">翌日 ›</button><button id="tod" title="今日">今日</button></div>
     <button id="imp" style="display:none">予定取込</button>
     <button id="mon" title="1か月分の一行日記を、まとめて見る">月の一行日記</button>
+    <button id="bak" title="全部の日記を文字にして、Notionなどに貼っておく(消えたときは、ここから戻せる)">バックアップ</button>
     <span class="msg" id="msg"></span>
   </div>
   <div class="note" id="noterow"><b>一行日記</b><input type="text" data-k="note" placeholder="今日の一行日記" autocomplete="off"></div>
   <div class="cols" id="cols"></div>
   <div id="mv"></div>
+  <div id="bk">
+    <div class="bt">全部の日記を、下の文字にまとめました。<b>コピーして、Notionのページに貼っておく</b>と、バックアップになります。消えたときは、貼った文字をここに入れて「読み込む」を押すと戻ります。</div>
+    <textarea id="bkta" spellcheck="false"></textarea>
+    <div class="bb"><button id="bkcopy">コピー</button><button id="bkload">この内容を読み込む(同じ日は上書き)</button><button id="bkback">日記にもどる</button><span id="bkmsg"></span></div>
+  </div>
 </div>
 <script>
 const $=id=>document.getElementById(id);
@@ -189,7 +201,7 @@ $("prev").onclick=()=>go(shift(-1));$("next").onclick=()=>go(shift(1));$("tod").
 $("past").onchange=e=>{const k=e.target.value;if(!k)return;if(k===cur){ls.del("diary:draft:"+cur)}else{draft()}show(k)};
 // 1か月分の一行日記を、まとめて見る(日付をおすと、その日の記録にもどる)
 let mv=null;
-function closeMonth(){mv=null;$("mv").style.display="none";$("cols").style.display="";$("noterow").style.display="";$("mon").textContent="月の一行日記"}
+function closeMonth(){mv=null;$("mv").style.display="none";$("bk").style.display="none";$("cols").style.display="";$("noterow").style.display="";$("mon").textContent="月の一行日記"}
 function monthKey(y,m){return y+"-"+String(m).padStart(2,"0")}
 function renderMonth(){
   const [y,m]=mv.split("-").map(Number),n=new Date(y,m,0).getDate(),today=ymd(new Date());
@@ -208,11 +220,46 @@ function renderMonth(){
 }
 $("mon").onclick=()=>{
   if(mv){closeMonth();return}
+  $("bk").style.display="none";
   const h=$("cols").offsetHeight+$("noterow").offsetHeight+9;
   const d=new Date(cur+"T00:00:00");mv=monthKey(d.getFullYear(),d.getMonth()+1);
   $("cols").style.display="none";$("noterow").style.display="none";
   $("mv").style.display="block";$("mv").style.height=h+"px";$("mon").textContent="日記にもどる";
   renderMonth();
+};
+// バックアップ:全部の日記を文字にして出す / 貼った文字から戻す
+function bkSay(t){$("bkmsg").textContent=t}
+function allDaysText(){
+  const o={};savedDates().slice().reverse().forEach(k=>{try{o[k]=JSON.parse(ls.get("diary:day:"+k))}catch(e){}});
+  const ks=Object.keys(o);
+  return ks.length?"{\n"+ks.map(k=>JSON.stringify(k)+":"+JSON.stringify(o[k])).join(",\n")+"\n}":"{}";
+}
+$("bak").onclick=()=>{
+  const open=$("bk").style.display==="flex";
+  if(open){closeMonth();return}
+  const h=$("cols").offsetHeight+$("noterow").offsetHeight+9;
+  closeMonth();
+  $("cols").style.display="none";$("noterow").style.display="none";
+  $("bk").style.display="flex";$("bk").style.height=h+"px";
+  $("bkta").value=allDaysText();bkSay("");$("mon").textContent="月の一行日記";
+};
+$("bkback").onclick=closeMonth;
+$("bkcopy").onclick=()=>{
+  const ta=$("bkta");ta.focus();ta.select();
+  const done=()=>bkSay("コピーしました。Notionのページに貼ってください");
+  const fail=()=>{try{if(document.execCommand("copy")){done();return}}catch(e){}bkSay("自動でコピーできません。文字を選んだので、Ctrl+C でコピーしてください")};
+  try{navigator.clipboard.writeText(ta.value).then(done,fail)}catch(e){fail()}
+};
+$("bkload").onclick=()=>{
+  let o;try{o=JSON.parse($("bkta").value)}catch(e){bkSay("読み込めません。貼った文字が、途中で切れていないか見てください");return}
+  if(!o||typeof o!=="object"||Array.isArray(o)){bkSay("読み込めません。形が違います");return}
+  let n=0;
+  for(const k of Object.keys(o)){
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(k)||!o[k]||typeof o[k]!=="object")continue;
+    ls.set("diary:day:"+k,JSON.stringify(o[k]));ls.del("diary:draft:"+k);n++;
+  }
+  refreshPast();bkSay(n+"日分を読み込みました");
+  if(n&&o[cur])fill(o[cur]);
 };
 show(cur);
 setInterval(mark,30000);
